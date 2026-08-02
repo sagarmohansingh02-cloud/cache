@@ -37,14 +37,35 @@ final class OCRService {
         let url = FileStorage.clipsDirectory.appendingPathComponent(filename)
 
         Self.queue.async {
-            let recognized = Self.recognizeText(at: url)
-            guard let recognized, !recognized.isEmpty else { return }
+            let recognized = Self.recognizeText(at: url) ?? ""
 
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
+                    // An empty string is written deliberately: it records
+                    // "recognition ran and found nothing", which is different
+                    // from nil meaning "never attempted". Backfill relies on
+                    // that distinction to avoid re-scanning textless images on
+                    // every launch.
                     self.apply(recognized, to: identifier)
                 }
             }
+        }
+    }
+
+    /// Recognise anything that was captured before OCR existed, or that failed.
+    ///
+    /// Runs once at launch on the same serial queue as live captures, so an old
+    /// history catches up in the background without competing with new copies.
+    func backfill() {
+        let descriptor = FetchDescriptor<Clip>(
+            predicate: #Predicate { $0.kind == "image" && $0.ocrText == nil }
+        )
+
+        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
+
+        NSLog("SupaClip: recognising text in \(pending.count) older image(s)")
+        for clip in pending {
+            enqueue(clip)
         }
     }
 

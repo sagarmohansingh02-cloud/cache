@@ -12,8 +12,16 @@ struct NotchCard: View {
     let isHovered: Bool
     let onSelect: () -> Void
     let onTogglePin: () -> Void
+    let onPreview: () -> Void
 
     private var kind: ClipKind { ClipKind(rawValue: clip.kind) ?? .text }
+
+    /// True once Vision has found text in this image — the whole reason a
+    /// screenshot is findable later.
+    private var hasRecognizedText: Bool {
+        guard let text = clip.ocrText else { return false }
+        return !text.isEmpty
+    }
 
     private static let side: CGFloat = 116
 
@@ -34,6 +42,7 @@ struct NotchCard: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(alignment: .topTrailing) { hoverActions }
+            .overlay(alignment: .topLeading) { textBadge }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -122,19 +131,50 @@ struct NotchCard: View {
     }
 
     private var hoverActions: some View {
-        Group {
+        HStack(spacing: 4) {
+            if isHovered {
+                circleButton("eye", action: onPreview)
+                    .help("Preview and read text")
+            }
             if isHovered || clip.isPinned {
-                Button(action: onTogglePin) {
-                    Image(systemName: clip.isPinned ? "star.fill" : "star")
-                        .font(.system(size: 9))
-                        .foregroundStyle(clip.isPinned ? Theme.accent : .white.opacity(0.7))
-                        .padding(4)
-                        .background(Circle().fill(.black.opacity(0.5)))
-                }
-                .buttonStyle(.plain)
-                .padding(4)
+                circleButton(
+                    clip.isPinned ? "star.fill" : "star",
+                    tint: clip.isPinned ? Theme.accent : .white.opacity(0.7),
+                    action: onTogglePin
+                )
             }
         }
+        .padding(4)
+    }
+
+    /// Marks an image whose text has been recognised, so you can tell at a
+    /// glance which screenshots are searchable by their contents.
+    @ViewBuilder
+    private var textBadge: some View {
+        if kind == .image && hasRecognizedText && !isHovered {
+            Image(systemName: "textformat")
+                .font(.system(size: 8, weight: .medium))
+                .foregroundStyle(.white.opacity(0.8))
+                .padding(3)
+                .background(Capsule().fill(.black.opacity(0.55)))
+                .padding(4)
+        }
+    }
+
+    private func circleButton(
+        _ symbol: String,
+        tint: Color = .white.opacity(0.7),
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 9))
+                .foregroundStyle(tint)
+                .padding(4)
+                .background(Circle().fill(.black.opacity(0.55)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func dragProvider() -> NSItemProvider {

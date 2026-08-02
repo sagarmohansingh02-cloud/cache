@@ -19,6 +19,7 @@ final class NotchController {
     private var mouseMonitor: Any?
     private var localMouseMonitor: Any?
 
+    private var isDetailOpen = false
     private var hotZone: HotZoneWindow?
     private var hotZoneScreen: NSScreen?
 
@@ -134,6 +135,7 @@ final class NotchController {
         currentScreen = target
 
         panel.contentView = FirstMouseHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
+        isDetailOpen = false
         panel.setFrame(NotchGeometry.panelFrame(on: target), display: false)
 
         // The strip would sit on top of the pill, so get the pill out of the way
@@ -145,7 +147,22 @@ final class NotchController {
         isShowing = true
     }
 
+    /// Grow or shrink the strip so the detail card has room. Animated, because
+    /// the panel resizing is the transition the user actually sees.
+    func setDetailOpen(_ open: Bool) {
+        guard isDetailOpen != open, let panel, let screen = currentScreen else { return }
+        isDetailOpen = open
+
+        let size = open ? NotchGeometry.expandedPanelSize : NotchGeometry.panelSize
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().setFrame(NotchGeometry.panelFrame(on: screen, size: size), display: true)
+        }
+    }
+
     func hide() {
+        isDetailOpen = false
         panel?.orderOut(nil)
         isShowing = false
         updateTray()
@@ -352,4 +369,13 @@ private struct NotchDot: View {
                 return true
             }
     }
+}
+
+/// Breaks the construction cycle between the controller and the SwiftUI content
+/// it builds: the content needs to call back into the controller, but the
+/// controller needs the content closure to exist first.
+@MainActor
+final class WeakBox<T: AnyObject> {
+    weak var value: T?
+    init() {}
 }

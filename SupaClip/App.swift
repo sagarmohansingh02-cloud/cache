@@ -39,6 +39,10 @@ struct SupaClipApp: App {
         self.container = container
 
         let store = ClipStore(context: container.mainContext)
+
+        // Images captured before OCR existed are invisible to search until they
+        // are recognised. Catch them up in the background at launch.
+        store.recognizeTextInOlderImages()
         let monitor = ClipboardMonitor(store: store)
         self.monitor = monitor
 
@@ -63,12 +67,20 @@ struct SupaClipApp: App {
 
         // The notch surface: opens on hover, or from the accent dot on any
         // display that hasn't got a notch to hover over.
+        // The controller needs to be referenced from the content it builds, so
+        // the box is filled in immediately after construction.
+        let notchControllerBox = WeakBox<NotchController>()
         let notchController = NotchController { dismiss in
             AnyView(
-                NotchView(monitor: monitor, onDismiss: dismiss)
-                    .modelContainer(container)
+                NotchView(
+                    monitor: monitor,
+                    onDismiss: dismiss,
+                    onDetailChanged: { open in notchControllerBox.value?.setDetailOpen(open) }
+                )
+                .modelContainer(container)
             )
         }
+        notchControllerBox.value = notchController
         self.notchController = notchController
         notchController.start()
 

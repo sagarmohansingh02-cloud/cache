@@ -19,6 +19,11 @@ final class ClipStore {
         self.ocr = OCRService(context: context)
     }
 
+    /// Catch up any images captured before OCR existed.
+    func recognizeTextInOlderImages() {
+        ocr.backfill()
+    }
+
     // MARK: - Reads
 
     /// Newest clip, or nil on an empty store. Used for deduplication.

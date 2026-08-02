@@ -16,6 +16,9 @@ enum NotchGeometry {
     static let virtualNotchWidth: CGFloat = 180
 
     static let panelSize = CGSize(width: 720, height: 300)
+
+    /// Taller variant, used while the detail card is open below the strip.
+    static let expandedPanelSize = CGSize(width: 720, height: 560)
     static let dotSize = CGSize(width: 14, height: 14)
 
     /// Wide enough for the expanded pill's thumbnails.
