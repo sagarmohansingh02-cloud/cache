@@ -32,13 +32,9 @@ struct NotchTrayView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Leave the physical notch uncovered — the pill hangs beneath it.
-            // Hit testing is off here (and on the trailing spacer) or the
-            // panel's transparent area would swallow clicks on the menu bar.
-            Color.clear
-                .frame(height: notchInset + 2)
-                .allowsHitTesting(false)
-
+            // The window itself is already positioned clear of the notch, so no
+            // spacer is needed — and no transparent area sits over the hot zone
+            // to block hover detection.
             if !tray.isEmpty {
                 pill
                     // Drops in from behind the notch and retreats back into it.
@@ -56,10 +52,6 @@ struct NotchTrayView: View {
         .animation(Theme.standardSpring, value: presentation.isVisible)
     }
 
-    private var notchInset: CGFloat {
-        guard let screen = NotchGeometry.screenUnderCursor() else { return 0 }
-        return NotchGeometry.notchRect(on: screen)?.height ?? 0
-    }
 
     // MARK: - Pill
 

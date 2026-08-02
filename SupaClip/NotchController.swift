@@ -17,6 +17,10 @@ final class NotchController {
     private var dotPanel: NSPanel?
     private var trayPanel: FloatingPanel?
     private var mouseMonitor: Any?
+    private var localMouseMonitor: Any?
+
+    private var hotZone: HotZoneWindow?
+    private var hotZoneScreen: NSScreen?
 
     private let trayPresentation = TrayPresentation()
     private var trayHideWorkItem: DispatchWorkItem?
@@ -41,12 +45,23 @@ final class NotchController {
     func start() {
         guard mouseMonitor == nil else { return }
 
-        // Global monitors observe events headed to *other* apps. Mouse-moved
-        // needs no special permission — unlike a keyboard tap, which is the
-        // whole reason this is a mouse feature and not a keyboard one.
+        // Opening is driven by a tracking area, not by watching move events —
+        // see HotZoneWindow for why the monitor approach could not work once
+        // the pill was on screen.
+        placeHotZone()
+
+        // The monitors remain, but only to notice the pointer *leaving* an open
+        // strip and to keep the zone on the right display. They are no longer
+        // responsible for opening anything.
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             MainActor.assumeIsolated { self?.pointerMoved() }
         }
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved]) { [weak self] event in
+            MainActor.assumeIsolated { self?.pointerMoved() }
+            return event
+        }
+
+
         // The tray drives itself off the shelf's contents rather than being
         // polled, so the pill appears the instant a copy lands.
         CopyTray.shared.onChange = { [weak self] in self?.updateTray() }
@@ -55,10 +70,26 @@ final class NotchController {
         updateTray()
     }
 
+    /// Keep the hot zone over the notch of whichever display the pointer is on.
+    private func placeHotZone() {
+        guard let screen = NotchGeometry.screenUnderCursor() else { return }
+
+        let zone = hotZone ?? HotZoneWindow { [weak self] in
+            MainActor.assumeIsolated { self?.show() }
+        }
+        hotZone = zone
+        zone.place(on: screen, rect: NotchGeometry.hotZone(on: screen))
+        hotZoneScreen = screen
+    }
+
     func stop() {
         if let mouseMonitor { NSEvent.removeMonitor(mouseMonitor) }
         mouseMonitor = nil
+        if let localMouseMonitor { NSEvent.removeMonitor(localMouseMonitor) }
+        localMouseMonitor = nil
         CopyTray.shared.onChange = nil
+        hotZone?.remove()
+        hotZone = nil
         hide()
         dotPanel?.orderOut(nil)
         dotPanel = nil
@@ -84,8 +115,11 @@ final class NotchController {
             return
         }
 
-        if NotchGeometry.hotZone(on: screen).contains(location) {
-            show(on: screen)
+        // Follow the pointer between displays. Opening itself is the tracking
+        // area's job, not this one's.
+        if screen !== hotZoneScreen {
+            placeHotZone()
+            updateDot()
         }
     }
 
@@ -141,6 +175,7 @@ final class NotchController {
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .none
+        panel.acceptsMouseMovedEvents = true
 
         return panel
     }
@@ -229,6 +264,7 @@ final class NotchController {
         panel.hasShadow = false
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .none
+        panel.acceptsMouseMovedEvents = true
 
         panel.contentView = FirstMouseHostingView(
             rootView: NotchTrayView(

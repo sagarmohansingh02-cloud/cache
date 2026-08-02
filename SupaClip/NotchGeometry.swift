@@ -18,15 +18,24 @@ enum NotchGeometry {
     static let panelSize = CGSize(width: 720, height: 300)
     static let dotSize = CGSize(width: 14, height: 14)
 
-    /// Wide enough for the expanded pill's thumbnails; only the pill itself
-    /// accepts clicks, the rest of the window is transparent and pass-through.
-    static let traySize = CGSize(width: 620, height: 96)
+    /// Wide enough for the expanded pill's thumbnails.
+    static let traySize = CGSize(width: 620, height: 56)
 
-    /// The tray hangs from the very top, centred like the panel.
+    /// The tray sits **below** the notch, never over it.
+    ///
+    /// This is load-bearing, not cosmetic. Hover detection uses a *global*
+    /// event monitor, and global monitors do not observe events delivered to
+    /// our own windows. When the pill covered the notch, the hot zone stopped
+    /// seeing the pointer entirely and the strip could never open — the app
+    /// went dead the moment you copied anything. Keeping the pill clear of the
+    /// notch keeps the hot zone reachable.
     static func trayFrame(on screen: NSScreen) -> CGRect {
-        CGRect(
+        let notchHeight = notchRect(on: screen)?.height
+            ?? max(screen.frame.maxY - screen.visibleFrame.maxY, 24)
+
+        return CGRect(
             x: (screen.frame.midX - traySize.width / 2).rounded(),
-            y: (screen.frame.maxY - traySize.height).rounded(),
+            y: (screen.frame.maxY - notchHeight - 4 - traySize.height).rounded(),
             width: traySize.width,
             height: traySize.height
         )
