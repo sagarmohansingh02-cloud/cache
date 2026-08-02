@@ -97,12 +97,21 @@ final class ScreenshotWatcher {
 
         // The original stays where the user put it; we keep our own copy, so
         // deleting the Desktop file doesn't empty the clip.
+        //
+        // Filed into the Screenshots collection on the way in, so the chip is
+        // populated without anyone having to sort anything by hand. OCR is
+        // queued by `insertImage`, so the text inside is searchable shortly
+        // after the file lands.
         store.insertImage(
             image,
             sourceAppName: "Screenshot",
-            sourceAppBundleID: nil
+            sourceAppBundleID: nil,
+            category: Self.collectionName
         )
     }
+
+    /// The auto-assigned collection every screenshot lands in.
+    static let collectionName = "Screenshots"
 
     // MARK: - Helpers
 

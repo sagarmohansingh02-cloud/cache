@@ -43,6 +43,7 @@ struct SupaClipApp: App {
         // Images captured before OCR existed are invisible to search until they
         // are recognised. Catch them up in the background at launch.
         store.recognizeTextInOlderImages()
+        store.backfillScreenshotCollection()
         let monitor = ClipboardMonitor(store: store)
         self.monitor = monitor
 

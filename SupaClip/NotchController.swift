@@ -154,10 +154,20 @@ final class NotchController {
         isDetailOpen = open
 
         let size = open ? NotchGeometry.expandedPanelSize : NotchGeometry.panelSize
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.22
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            panel.animator().setFrame(NotchGeometry.panelFrame(on: screen, size: size), display: true)
+        let frame = NotchGeometry.panelFrame(on: screen, size: size)
+
+        // This *must* be deferred. It is called from a SwiftUI button action,
+        // which runs inside AppKit's display cycle — and resizing an NSWindow
+        // during layout makes `-[NSView setFrameSize:]` throw an exception that
+        // aborts the process. Opening a preview crashed the app for exactly
+        // this reason. Hopping to the next runloop turn puts the resize safely
+        // outside the cycle.
+        DispatchQueue.main.async {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.22
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                panel.animator().setFrame(frame, display: true)
+            }
         }
     }
 

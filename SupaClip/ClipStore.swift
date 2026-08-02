@@ -24,6 +24,23 @@ final class ClipStore {
         ocr.backfill()
     }
 
+    /// File screenshots captured before the Screenshots collection existed, so
+    /// the chip shows the full history rather than only new captures.
+    func backfillScreenshotCollection() {
+        let name = ScreenshotWatcher.collectionName
+        let descriptor = FetchDescriptor<Clip>(
+            predicate: #Predicate { $0.sourceAppName == "Screenshot" && $0.category == nil }
+        )
+
+        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
+
+        for clip in pending {
+            clip.category = name
+        }
+        save()
+        NSLog("SupaClip: filed \(pending.count) existing screenshot(s) into \(name)")
+    }
+
     // MARK: - Reads
 
     /// Newest clip, or nil on an empty store. Used for deduplication.
@@ -73,7 +90,8 @@ final class ClipStore {
     func insertImage(
         _ image: NSImage,
         sourceAppName: String?,
-        sourceAppBundleID: String?
+        sourceAppBundleID: String?,
+        category: String? = nil
     ) -> Bool {
         let filenames: (image: String, thumbnail: String)
         do {
@@ -88,7 +106,8 @@ final class ClipStore {
             imageFilename: filenames.image,
             thumbnailFilename: filenames.thumbnail,
             sourceAppName: sourceAppName,
-            sourceAppBundleID: sourceAppBundleID
+            sourceAppBundleID: sourceAppBundleID,
+            category: category
         )
         context.insert(clip)
 
