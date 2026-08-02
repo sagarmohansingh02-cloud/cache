@@ -17,6 +17,7 @@ struct SupaClipApp: App {
     private let monitor: ClipboardMonitor
     private let panelController: PanelController
     private let screenshotWatcher: ScreenshotWatcher
+    private let notchController: NotchController
 
     init() {
         let container: ModelContainer
@@ -58,6 +59,17 @@ struct SupaClipApp: App {
             )
         }
         self.panelController = panelController
+
+        // The notch surface: opens on hover, or from the accent dot on any
+        // display that hasn't got a notch to hover over.
+        let notchController = NotchController { dismiss in
+            AnyView(
+                NotchView(monitor: monitor, onDismiss: dismiss)
+                    .modelContainer(container)
+            )
+        }
+        self.notchController = notchController
+        notchController.start()
 
         // Fires on key *up* so the panel doesn't open while ⌃⌘ is still held.
         // The handler runs on the main thread; `assumeIsolated` states that to

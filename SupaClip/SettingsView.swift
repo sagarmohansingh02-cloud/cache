@@ -35,8 +35,6 @@ struct SettingsView: View {
                     Divider()
                     rulesSection
                     Divider()
-                    expansionSection
-                    Divider()
                     historySection
                 }
                 .padding(16)
@@ -127,25 +125,6 @@ struct SettingsView: View {
                         }
                     }
                 }
-            }
-        }
-    }
-
-    private var expansionSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            toggle(
-                "Inline text expansion",
-                detail: "Type a snippet's trigger anywhere and it expands. Requires Accessibility permission.",
-                isOn: $settings.textExpansionEnabled
-            )
-
-            if settings.textExpansionEnabled {
-                Label(
-                    "While this is on, SupaClip observes your keystrokes system-wide to detect triggers. Nothing is stored or sent anywhere.",
-                    systemImage: "exclamationmark.triangle"
-                )
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
             }
         }
     }
