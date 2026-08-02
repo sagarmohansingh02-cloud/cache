@@ -17,8 +17,13 @@ struct NotchView: View {
 
     @State private var searchText = ""
     @State private var selectedKind: ClipKind?
+    @State private var selectedCategory: String?
     @State private var hoveredID: UUID?
     @State private var isTargetedForDrop = false
+
+    /// Set while the "New Collection" prompt is up.
+    @State private var categoryTarget: Clip?
+    @State private var newCategoryName = ""
 
     @Bindable private var settings = AppSettings.shared
 
@@ -68,6 +73,23 @@ struct NotchView: View {
             handleDrop(providers)
         }
         .preferredColorScheme(.dark)
+        .animation(Theme.standardSpring, value: selectedKind)
+        .animation(Theme.standardSpring, value: selectedCategory)
+        .animation(Theme.standardSpring, value: filteredClips.count)
+        .alert(
+            "New Collection",
+            isPresented: Binding(
+                get: { categoryTarget != nil },
+                set: { if !$0 { categoryTarget = nil } }
+            )
+        ) {
+            TextField("Name", text: $newCategoryName)
+            Button("Create") {
+                if let clip = categoryTarget { store.setCategory(newCategoryName, on: clip) }
+                categoryTarget = nil
+            }
+            Button("Cancel", role: .cancel) { categoryTarget = nil }
+        }
     }
 
     /// Height of the physical notch on this screen, or a small lip when there
@@ -96,9 +118,39 @@ struct NotchView: View {
             .background(Capsule().fill(.white.opacity(0.08)))
             .frame(width: 200)
 
-            kindChip(label: "All", kind: nil)
-            ForEach(availableKinds, id: \.self) { kind in
-                kindChip(label: kind.displayName, kind: kind)
+            // Chips scroll rather than wrap — collections plus kinds can easily
+            // outgrow the strip's width.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    chip(label: "All", count: clips.count, isActive: !hasFilter) {
+                        selectedKind = nil
+                        selectedCategory = nil
+                    }
+
+                    ForEach(availableCategories, id: \.name) { collection in
+                        chip(
+                            label: collection.name,
+                            count: collection.count,
+                            symbol: "folder",
+                            isActive: selectedCategory == collection.name
+                        ) {
+                            selectedKind = nil
+                            selectedCategory = selectedCategory == collection.name ? nil : collection.name
+                        }
+                    }
+
+                    ForEach(availableKinds, id: \.kind) { entry in
+                        chip(
+                            label: entry.kind.displayName,
+                            count: entry.count,
+                            isActive: selectedKind == entry.kind
+                        ) {
+                            selectedCategory = nil
+                            selectedKind = selectedKind == entry.kind ? nil : entry.kind
+                        }
+                    }
+                }
+                .padding(.horizontal, 1)
             }
 
             Spacer(minLength: 0)
@@ -112,18 +164,35 @@ struct NotchView: View {
         }
     }
 
-    private func kindChip(label: String, kind: ClipKind?) -> some View {
-        let isActive = selectedKind == kind
+    private var hasFilter: Bool { selectedKind != nil || selectedCategory != nil }
 
-        return Button {
-            withAnimation(Theme.standardSpring) { selectedKind = kind }
+    /// Chips carry their count, so you can see what's in a collection without
+    /// opening it.
+    private func chip(
+        label: String,
+        count: Int,
+        symbol: String? = nil,
+        isActive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            withAnimation(Theme.standardSpring) { action() }
         } label: {
-            Text(label)
-                .font(.system(size: 11, weight: isActive ? .medium : .regular))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .foregroundStyle(isActive ? .black : .white.opacity(0.65))
-                .background(Capsule().fill(isActive ? .white : .white.opacity(0.08)))
+            HStack(spacing: 4) {
+                if let symbol {
+                    Image(systemName: symbol).font(.system(size: 9))
+                }
+                Text(label)
+                    .font(.system(size: 11, weight: isActive ? .medium : .regular))
+                Text("\(count)")
+                    .font(.system(size: 9, weight: .medium).monospacedDigit())
+                    .opacity(0.6)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .foregroundStyle(isActive ? .black : .white.opacity(0.65))
+            .background(Capsule().fill(isActive ? .white : .white.opacity(0.08)))
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
@@ -155,6 +224,10 @@ struct NotchView: View {
                                     .onHover { hovering in
                                         hoveredID = hovering ? clip.id : nil
                                     }
+                                    .contextMenu { cardMenu(for: clip) }
+                                    .transition(
+                                        .scale(scale: 0.9).combined(with: .opacity)
+                                    )
                                 }
                             }
                         }
@@ -185,19 +258,32 @@ struct NotchView: View {
     private var filteredClips: [Clip] {
         clips.filter { clip in
             if let selectedKind, clip.kind != selectedKind.rawValue { return false }
+            if let selectedCategory, clip.category != selectedCategory { return false }
 
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !query.isEmpty else { return true }
 
-            return [clip.title, clip.text, clip.ocrText]
+            return [clip.title, clip.text, clip.ocrText, clip.sourceAppName]
                 .compactMap { $0 }
                 .contains { $0.localizedStandardContains(query) }
         }
     }
 
-    private var availableKinds: [ClipKind] {
-        let present = Set(clips.map(\.kind))
-        return ClipKind.allCases.filter { present.contains($0.rawValue) }
+    private var availableKinds: [(kind: ClipKind, count: Int)] {
+        ClipKind.allCases.compactMap { kind in
+            let count = clips.filter { $0.kind == kind.rawValue }.count
+            return count > 0 ? (kind, count) : nil
+        }
+    }
+
+    /// User-made collections, with how many clips are in each.
+    private var availableCategories: [(name: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for clip in clips {
+            guard let category = clip.category else { continue }
+            counts[category, default: 0] += 1
+        }
+        return counts.map { (name: $0.key, count: $0.value) }.sorted { $0.name < $1.name }
     }
 
     private struct DayGroup {
@@ -241,6 +327,49 @@ struct NotchView: View {
             return nil
         }
         return index
+    }
+
+    /// Right-click on a card. This is where a clip gets filed into a
+    /// collection — the chips only filter, they don't assign.
+    @ViewBuilder
+    private func cardMenu(for clip: Clip) -> some View {
+        Button("Paste") { paste(clip) }
+
+        Button(clip.isPinned ? "Unstar" : "Star") {
+            withAnimation(Theme.standardSpring) { store.togglePin(clip) }
+        }
+
+        Menu("Add to Collection") {
+            ForEach(availableCategories, id: \.name) { collection in
+                Button {
+                    withAnimation(Theme.standardSpring) {
+                        store.setCategory(collection.name, on: clip)
+                    }
+                } label: {
+                    Text(clip.category == collection.name ? "✓ \(collection.name)" : collection.name)
+                }
+            }
+
+            if !availableCategories.isEmpty { Divider() }
+
+            Button("New Collection…") {
+                newCategoryName = ""
+                categoryTarget = clip
+            }
+
+            if let current = clip.category {
+                Divider()
+                Button("Remove from \(current)") {
+                    withAnimation(Theme.standardSpring) { store.setCategory(nil, on: clip) }
+                }
+            }
+        }
+
+        Divider()
+
+        Button("Delete", role: .destructive) {
+            withAnimation(Theme.standardSpring) { store.delete(clip) }
+        }
     }
 
     // MARK: - Actions

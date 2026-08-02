@@ -40,7 +40,7 @@ final class PanelController {
 
         // Rebuild the content on every open so the list starts at the top and
         // the search field's focus-on-appear fires again.
-        panel.contentView = NSHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
+        panel.contentView = FirstMouseHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
 
         position(panel)
 

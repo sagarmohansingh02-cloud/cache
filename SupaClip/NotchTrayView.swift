@@ -1,5 +1,17 @@
 import AppKit
+import Observation
 import SwiftUI
+
+/// Whether the pill is currently on screen, and whether the pointer is on it.
+///
+/// The pill is deliberately transient: it announces a copy and then gets out of
+/// the way. Nothing of SupaClip's should sit on the desktop permanently.
+@MainActor
+@Observable
+final class TrayPresentation {
+    var isVisible = false
+    var isHovering = false
+}
 
 /// The count pill that hangs from the notch as you copy.
 ///
@@ -9,10 +21,14 @@ import SwiftUI
 struct NotchTrayView: View {
     private let tray = CopyTray.shared
 
+    /// Drives the fade. Owned by the controller so the timer and the animation
+    /// agree about when the pill is on screen.
+    @Bindable var presentation: TrayPresentation
+
     /// Click-through to the full notch strip.
     let onOpenStrip: () -> Void
 
-    @State private var isHovering = false
+    private var isHovering: Bool { presentation.isHovering }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +41,11 @@ struct NotchTrayView: View {
 
             if !tray.isEmpty {
                 pill
-                    .transition(.scale(scale: 0.85, anchor: .top).combined(with: .opacity))
+                    // Drops in from behind the notch and retreats back into it.
+                    .offset(y: presentation.isVisible ? 0 : -14)
+                    .opacity(presentation.isVisible ? 1 : 0)
+                    .scaleEffect(presentation.isVisible ? 1 : 0.9, anchor: .top)
+                    .blur(radius: presentation.isVisible ? 0 : 3)
             }
 
             Spacer(minLength: 0)
@@ -33,6 +53,7 @@ struct NotchTrayView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(Theme.standardSpring, value: tray.count)
         .animation(Theme.standardSpring, value: isHovering)
+        .animation(Theme.standardSpring, value: presentation.isVisible)
     }
 
     private var notchInset: CGFloat {
@@ -83,7 +104,9 @@ struct NotchTrayView: View {
                 onDragEnded: { tray.clear() }
             )
         )
-        .onHover { hovering in isHovering = hovering }
+        // Hovering holds the pill open — the fade timer checks this before it
+        // retracts, so reaching for the stack never has it vanish mid-reach.
+        .onHover { hovering in presentation.isHovering = hovering }
         .onTapGesture { onOpenStrip() }
     }
 

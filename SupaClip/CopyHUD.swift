@@ -78,7 +78,7 @@ final class CopyHUDController {
         // Purely a notification — it must never intercept a click.
         panel.ignoresMouseEvents = true
 
-        panel.contentView = NSHostingView(rootView: CopyHUDView(visibility: visible))
+        panel.contentView = FirstMouseHostingView(rootView: CopyHUDView(visibility: visible))
         return panel
     }
 }

@@ -18,6 +18,12 @@ final class NotchController {
     private var trayPanel: FloatingPanel?
     private var mouseMonitor: Any?
 
+    private let trayPresentation = TrayPresentation()
+    private var trayHideWorkItem: DispatchWorkItem?
+
+    /// How long the pill lingers after the last copy.
+    private static let trayDwell: TimeInterval = 3.5
+
     /// True while the panel is on screen, so the monitor knows whether it is
     /// looking for an entry or an exit.
     private var isShowing = false
@@ -93,7 +99,7 @@ final class NotchController {
         self.panel = panel
         currentScreen = target
 
-        panel.contentView = NSHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
+        panel.contentView = FirstMouseHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
         panel.setFrame(NotchGeometry.panelFrame(on: target), display: false)
 
         // The strip would sit on top of the pill, so get the pill out of the way
@@ -141,11 +147,15 @@ final class NotchController {
 
     // MARK: - The tray pill
 
-    /// Shown whenever the shelf has anything on it, hidden the moment it's
-    /// cleared or dragged off.
+    /// Shows the pill on a copy, then retracts it.
+    ///
+    /// The pill is transient by design: it confirms the capture, offers a few
+    /// seconds to grab the stack, and then leaves. Nothing belonging to this app
+    /// should sit on the desktop permanently. The shelf's *contents* survive —
+    /// hovering the notch still shows them — only the pill goes away.
     private func updateTray() {
         guard !CopyTray.shared.isEmpty, !isShowing else {
-            trayPanel?.orderOut(nil)
+            retractTray(animated: false)
             return
         }
 
@@ -158,6 +168,49 @@ final class NotchController {
         // `orderFrontRegardless` and never `makeKey`: the pill must never take
         // focus from whatever you're copying out of.
         tray.orderFrontRegardless()
+        trayPresentation.isVisible = true
+
+        scheduleTrayRetract()
+    }
+
+    /// Each new copy restarts the clock, so a burst of copies reads as one
+    /// continuous pill rather than a flicker.
+    private func scheduleTrayRetract() {
+        trayHideWorkItem?.cancel()
+
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+
+                // Don't yank it away from under the pointer.
+                if self.trayPresentation.isHovering {
+                    self.scheduleTrayRetract()
+                    return
+                }
+                self.retractTray(animated: true)
+            }
+        }
+        trayHideWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.trayDwell, execute: work)
+    }
+
+    private func retractTray(animated: Bool) {
+        trayHideWorkItem?.cancel()
+        trayHideWorkItem = nil
+        trayPresentation.isVisible = false
+
+        guard animated else {
+            trayPanel?.orderOut(nil)
+            return
+        }
+
+        // Order out only once the retract animation has played.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.trayPresentation.isVisible == false else { return }
+                self.trayPanel?.orderOut(nil)
+            }
+        }
     }
 
     private func makeTrayPanel() -> FloatingPanel {
@@ -177,8 +230,11 @@ final class NotchController {
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .none
 
-        panel.contentView = NSHostingView(
-            rootView: NotchTrayView(onOpenStrip: { [weak self] in self?.show() })
+        panel.contentView = FirstMouseHostingView(
+            rootView: NotchTrayView(
+                presentation: trayPresentation,
+                onOpenStrip: { [weak self] in self?.show() }
+            )
         )
 
         return panel
@@ -219,7 +275,7 @@ final class NotchController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = false
 
-        panel.contentView = NSHostingView(
+        panel.contentView = FirstMouseHostingView(
             rootView: NotchDot(
                 onOpen: { [weak self] in self?.show() },
                 onDrop: { [weak self] in self?.show() }
