@@ -58,6 +58,7 @@ final class ClipStore {
 
         prune()
         save()
+        CopyTray.shared.add(clip)
         return true
     }
 
@@ -88,6 +89,8 @@ final class ClipStore {
 
         prune()
         save()
+
+        CopyTray.shared.add(clip)
 
         // Fire-and-forget: the clip is already saved and visible: OCR only adds
         // searchable text to it later.
@@ -161,6 +164,7 @@ final class ClipStore {
     /// Deleting a row must delete its files too, or Application Support grows
     /// forever.
     func delete(_ clip: Clip) {
+        CopyTray.shared.remove(clip)
         FileStorage.deleteFiles(
             imageFilename: clip.imageFilename,
             thumbnailFilename: clip.thumbnailFilename

@@ -32,6 +32,11 @@ enum Theme {
     static let cardBorder = Color.white.opacity(0.08)
     static let hoverFill = Color.white.opacity(0.06)
 
+    /// Flat near-black, matching the reference. Notch surfaces deliberately do
+    /// not use a system material: they sit against the physical black notch, and
+    /// a translucent blur beside solid black reads as a mistake.
+    static let notchSurface = Color(red: 0.04, green: 0.04, blue: 0.05)
+
     // Motion
     static let standardSpring = Animation.spring(response: 0.3, dampingFraction: 0.8)
     static let hoverFade = Animation.easeOut(duration: 0.12)

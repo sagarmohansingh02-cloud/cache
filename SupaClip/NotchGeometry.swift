@@ -18,6 +18,20 @@ enum NotchGeometry {
     static let panelSize = CGSize(width: 720, height: 300)
     static let dotSize = CGSize(width: 14, height: 14)
 
+    /// Wide enough for the expanded pill's thumbnails; only the pill itself
+    /// accepts clicks, the rest of the window is transparent and pass-through.
+    static let traySize = CGSize(width: 620, height: 96)
+
+    /// The tray hangs from the very top, centred like the panel.
+    static func trayFrame(on screen: NSScreen) -> CGRect {
+        CGRect(
+            x: (screen.frame.midX - traySize.width / 2).rounded(),
+            y: (screen.frame.maxY - traySize.height).rounded(),
+            width: traySize.width,
+            height: traySize.height
+        )
+    }
+
     // MARK: - Notch detection
 
     /// A Mac laptop with a notch reports a non-zero top safe-area inset.

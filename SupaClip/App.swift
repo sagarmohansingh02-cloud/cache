@@ -18,6 +18,7 @@ struct SupaClipApp: App {
     private let panelController: PanelController
     private let screenshotWatcher: ScreenshotWatcher
     private let notchController: NotchController
+    private let copyHUD: CopyHUDController
 
     init() {
         let container: ModelContainer
@@ -70,6 +71,12 @@ struct SupaClipApp: App {
         }
         self.notchController = notchController
         notchController.start()
+
+        // The capture-confirmation flash. Driven by the pasteboard, not the
+        // keyboard — see CopyHUD.
+        let copyHUD = CopyHUDController()
+        self.copyHUD = copyHUD
+        CopyTray.shared.onCapture = { [weak copyHUD] in copyHUD?.flash() }
 
         // Fires on key *up* so the panel doesn't open while ⌃⌘ is still held.
         // The handler runs on the main thread; `assumeIsolated` states that to

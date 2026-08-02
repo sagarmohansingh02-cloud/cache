@@ -1,0 +1,162 @@
+import AppKit
+import SwiftUI
+
+/// The count pill that hangs from the notch as you copy.
+///
+/// Collapsed it is a single line — "5 items · Text, Image" — with the stack
+/// fanned behind it. Hovering expands it into the thumbnails, and dragging from
+/// anywhere on it pulls the whole stack out at once.
+struct NotchTrayView: View {
+    private let tray = CopyTray.shared
+
+    /// Click-through to the full notch strip.
+    let onOpenStrip: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Leave the physical notch uncovered — the pill hangs beneath it.
+            // Hit testing is off here (and on the trailing spacer) or the
+            // panel's transparent area would swallow clicks on the menu bar.
+            Color.clear
+                .frame(height: notchInset + 2)
+                .allowsHitTesting(false)
+
+            if !tray.isEmpty {
+                pill
+                    .transition(.scale(scale: 0.85, anchor: .top).combined(with: .opacity))
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .animation(Theme.standardSpring, value: tray.count)
+        .animation(Theme.standardSpring, value: isHovering)
+    }
+
+    private var notchInset: CGFloat {
+        guard let screen = NotchGeometry.screenUnderCursor() else { return 0 }
+        return NotchGeometry.notchRect(on: screen)?.height ?? 0
+    }
+
+    // MARK: - Pill
+
+    private var pill: some View {
+        HStack(spacing: 8) {
+            if isHovering {
+                thumbnails
+            } else {
+                fannedStack
+            }
+
+            Text(tray.summary)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
+                .fixedSize()
+
+            if isHovering {
+                Divider().frame(height: 14).overlay(.white.opacity(0.15))
+
+                iconButton("rectangle.stack") { onOpenStrip() }
+                    .help("Open clipboard")
+
+                iconButton("xmark") { tray.clear() }
+                    .help("Clear shelf")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Theme.notchSurface)
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+        )
+        // The drag handle sits on top of everything so a drag started anywhere
+        // on the pill pulls the whole stack.
+        .overlay(
+            StackDragHandle(
+                makeItems: { tray.draggingItems() },
+                onDragEnded: { tray.clear() }
+            )
+        )
+        .onHover { hovering in isHovering = hovering }
+        .onTapGesture { onOpenStrip() }
+    }
+
+    /// Collapsed state: the stack peeking out from behind itself, so the pill
+    /// reads as holding things rather than just counting them.
+    private var fannedStack: some View {
+        ZStack(alignment: .leading) {
+            ForEach(Array(tray.items.prefix(3).enumerated()), id: \.element.id) { index, clip in
+                miniTile(for: clip)
+                    .offset(x: CGFloat(index) * 7)
+                    .zIndex(Double(3 - index))
+            }
+        }
+        .frame(width: 18 + CGFloat(min(tray.count, 3) - 1) * 7, height: 18, alignment: .leading)
+    }
+
+    private var thumbnails: some View {
+        HStack(spacing: 4) {
+            ForEach(tray.items.prefix(8), id: \.id) { clip in
+                miniTile(for: clip)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func miniTile(for clip: Clip) -> some View {
+        let kind = ClipKind(rawValue: clip.kind) ?? .text
+
+        Group {
+            switch kind {
+            case .image:
+                if let thumbnail = ThumbnailCache.thumbnail(named: clip.thumbnailFilename) {
+                    Image(nsImage: thumbnail).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    tileSymbol("photo")
+                }
+            case .color:
+                Color(nsColor: ClipColorParser.color(from: clip.text) ?? .black)
+            case .file:
+                tileSymbol("doc")
+            case .link:
+                tileSymbol("link")
+            case .code:
+                tileSymbol("chevron.left.forwardslash.chevron.right")
+            case .text:
+                tileSymbol("text.alignleft")
+            }
+        }
+        .frame(width: 18, height: 18)
+        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+        )
+    }
+
+    private func tileSymbol(_ name: String) -> some View {
+        ZStack {
+            Color.white.opacity(0.10)
+            Image(systemName: name)
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.6))
+        }
+    }
+
+    private func iconButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}

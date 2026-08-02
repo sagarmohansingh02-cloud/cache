@@ -15,6 +15,7 @@ final class NotchController {
 
     private var panel: FloatingPanel?
     private var dotPanel: NSPanel?
+    private var trayPanel: FloatingPanel?
     private var mouseMonitor: Any?
 
     /// True while the panel is on screen, so the monitor knows whether it is
@@ -40,15 +41,23 @@ final class NotchController {
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
             MainActor.assumeIsolated { self?.pointerMoved() }
         }
+        // The tray drives itself off the shelf's contents rather than being
+        // polled, so the pill appears the instant a copy lands.
+        CopyTray.shared.onChange = { [weak self] in self?.updateTray() }
+
         updateDot()
+        updateTray()
     }
 
     func stop() {
         if let mouseMonitor { NSEvent.removeMonitor(mouseMonitor) }
         mouseMonitor = nil
+        CopyTray.shared.onChange = nil
         hide()
         dotPanel?.orderOut(nil)
         dotPanel = nil
+        trayPanel?.orderOut(nil)
+        trayPanel = nil
     }
 
     // MARK: - Hover
@@ -87,6 +96,10 @@ final class NotchController {
         panel.contentView = NSHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
         panel.setFrame(NotchGeometry.panelFrame(on: target), display: false)
 
+        // The strip would sit on top of the pill, so get the pill out of the way
+        // while the full surface is open.
+        trayPanel?.orderOut(nil)
+
         panel.orderFrontRegardless()
         panel.makeKey()
         isShowing = true
@@ -95,6 +108,7 @@ final class NotchController {
     func hide() {
         panel?.orderOut(nil)
         isShowing = false
+        updateTray()
     }
 
     func toggle() {
@@ -121,6 +135,51 @@ final class NotchController {
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.animationBehavior = .none
+
+        return panel
+    }
+
+    // MARK: - The tray pill
+
+    /// Shown whenever the shelf has anything on it, hidden the moment it's
+    /// cleared or dragged off.
+    private func updateTray() {
+        guard !CopyTray.shared.isEmpty, !isShowing else {
+            trayPanel?.orderOut(nil)
+            return
+        }
+
+        guard let screen = NotchGeometry.screenUnderCursor() else { return }
+
+        let tray = trayPanel ?? makeTrayPanel()
+        trayPanel = tray
+
+        tray.setFrame(NotchGeometry.trayFrame(on: screen), display: false)
+        // `orderFrontRegardless` and never `makeKey`: the pill must never take
+        // focus from whatever you're copying out of.
+        tray.orderFrontRegardless()
+    }
+
+    private func makeTrayPanel() -> FloatingPanel {
+        let panel = FloatingPanel(
+            contentRect: NSRect(origin: .zero, size: NotchGeometry.traySize),
+            styleMask: [.nonactivatingPanel, .borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        panel.isFloatingPanel = true
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.hidesOnDeactivate = false
+        panel.animationBehavior = .none
+
+        panel.contentView = NSHostingView(
+            rootView: NotchTrayView(onOpenStrip: { [weak self] in self?.show() })
+        )
 
         return panel
     }
