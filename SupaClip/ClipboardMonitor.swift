@@ -123,10 +123,18 @@ final class ClipboardMonitor {
         let appName = frontApp?.localizedName
         let bundleID = frontApp?.bundleIdentifier
 
+        // Rules: an app the user has muted never gets recorded.
+        if let bundleID, settings.ignoredBundleIDs.contains(bundleID) { return }
+
+        let kind = ClipKind.detect(pasteboard: pasteboard)
+
+        // Rules: a kind the user has muted never gets recorded.
+        if settings.ignoredKinds.contains(kind.rawValue) { return }
+
         // Read order matters and mirrors the detection order: a copied file is
         // also offered as a string, and an image is also offered as TIFF *and*
         // sometimes a name — so the most specific representation wins.
-        switch ClipKind.detect(pasteboard: pasteboard) {
+        switch kind {
         case .file:
             guard let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL],
                   !urls.isEmpty
@@ -141,7 +149,7 @@ final class ClipboardMonitor {
             guard let image = NSImage(pasteboard: pasteboard) else { return }
             store.insertImage(image, sourceAppName: appName, sourceAppBundleID: bundleID)
 
-        case let kind:
+        default:
             guard let text = pasteboard.string(forType: .string),
                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             else { return }

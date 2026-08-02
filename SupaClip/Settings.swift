@@ -21,6 +21,37 @@ final class AppSettings {
         static let isPaused = "isPaused"
         static let historyLimit = "historyLimit"
         static let capturesScreenshots = "capturesScreenshots"
+        static let sortOrder = "sortOrder"
+        static let viewMode = "viewMode"
+        static let ignoredBundleIDs = "ignoredBundleIDs"
+        static let ignoredKinds = "ignoredKinds"
+        static let textExpansionEnabled = "textExpansionEnabled"
+    }
+
+    var sortOrder: SortOrder {
+        didSet { UserDefaults.standard.set(sortOrder.rawValue, forKey: Keys.sortOrder) }
+    }
+
+    var viewMode: ViewMode {
+        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: Keys.viewMode) }
+    }
+
+    /// Rules: apps whose copies are never recorded. Password managers already
+    /// handle themselves via the concealed-type guard; this is for the user's
+    /// own choices, like a banking app or a private notes app.
+    var ignoredBundleIDs: [String] {
+        didSet { UserDefaults.standard.set(ignoredBundleIDs, forKey: Keys.ignoredBundleIDs) }
+    }
+
+    /// Rules: kinds of content never recorded, stored as `ClipKind` raw values.
+    var ignoredKinds: [String] {
+        didSet { UserDefaults.standard.set(ignoredKinds, forKey: Keys.ignoredKinds) }
+    }
+
+    /// Inline text expansion. Off by default — it needs Accessibility and
+    /// watches every keystroke system-wide, so it must be a deliberate choice.
+    var textExpansionEnabled: Bool {
+        didSet { UserDefaults.standard.set(textExpansionEnabled, forKey: Keys.textExpansionEnabled) }
     }
 
     /// Watch the system screenshot folder and file new screenshots as clips.
@@ -57,98 +88,12 @@ final class AppSettings {
         capturesScreenshots = defaults.bool(forKey: Keys.capturesScreenshots)
         isPaused = defaults.bool(forKey: Keys.isPaused)
         historyLimit = min(defaults.integer(forKey: Keys.historyLimit), Self.maxHistoryLimit)
+
+        sortOrder = SortOrder(rawValue: defaults.string(forKey: Keys.sortOrder) ?? "") ?? .newest
+        viewMode = ViewMode(rawValue: defaults.string(forKey: Keys.viewMode) ?? "") ?? .list
+        ignoredBundleIDs = defaults.stringArray(forKey: Keys.ignoredBundleIDs) ?? []
+        ignoredKinds = defaults.stringArray(forKey: Keys.ignoredKinds) ?? []
+        textExpansionEnabled = defaults.bool(forKey: Keys.textExpansionEnabled)
     }
 }
 
-/// The settings sheet, shown from the footer gear.
-struct SettingsView: View {
-    @Bindable var settings: AppSettings
-    let onClearAll: () -> Void
-    let onClose: () -> Void
-
-    @State private var isConfirmingClear = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Settings")
-                .font(.system(size: 13, weight: .medium))
-
-            VStack(alignment: .leading, spacing: 4) {
-                // The package's own recorder view: click it, press a combination,
-                // and it registers the global hotkey and persists it for us.
-                KeyboardShortcuts.Recorder("Global hotkey", name: .togglePanel)
-                    .font(.system(size: 13))
-
-                Text("Opens the floating panel from any app.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Toggle(isOn: $settings.isPaused) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Pause capture")
-                        .font(.system(size: 13))
-                    Text("Nothing new is recorded while paused.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .tint(Theme.accent)
-
-            Toggle(isOn: $settings.capturesScreenshots) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Save screenshots")
-                        .font(.system(size: 13))
-                    Text("New screenshots are added automatically, even if you never copy them.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .tint(Theme.accent)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Picker("History limit", selection: $settings.historyLimit) {
-                    ForEach(AppSettings.historyLimitOptions, id: \.self) { limit in
-                        Text("\(limit) clips").tag(limit)
-                    }
-                }
-                .font(.system(size: 13))
-
-                Text("Older unpinned clips are deleted automatically.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Divider()
-
-            Button(role: .destructive) {
-                isConfirmingClear = true
-            } label: {
-                Text("Clear all clips")
-                    .font(.system(size: 13))
-            }
-            .confirmationDialog(
-                "Delete every clip?",
-                isPresented: $isConfirmingClear,
-                titleVisibility: .visible
-            ) {
-                Button("Delete all", role: .destructive) { onClearAll() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This removes your entire history, including pinned clips and saved images. It can't be undone.")
-            }
-
-            Spacer()
-
-            HStack {
-                Spacer()
-                Button("Done", action: onClose)
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(16)
-        .frame(width: Theme.panelWidth, height: Theme.panelHeight)
-    }
-}

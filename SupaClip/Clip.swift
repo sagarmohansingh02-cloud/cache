@@ -34,6 +34,28 @@ final class Clip {
     /// User-created category name. nil means it lives in plain History.
     var category: String?
 
+    // MARK: - Added after the first schema
+    //
+    // Every property below is optional or carries a default. That's what lets
+    // SwiftData migrate an existing store in place instead of demanding a
+    // versioned migration plan — and it's why an existing history survives an
+    // app update rather than being wiped.
+
+    /// User-supplied name for the clip, shown instead of its contents.
+    var title: String?
+
+    /// How many times this clip has been pasted back. Drives "most used" sort.
+    var useCount: Int = 0
+
+    /// Last time it was pasted back, for recency sorting.
+    var lastUsedAt: Date?
+
+    /// When set, a local notification fires at this time.
+    var reminderAt: Date?
+
+    /// Position for manual sort order. Unset until the user drags something.
+    var manualOrder: Int?
+
     init(
         id: UUID = UUID(),
         createdAt: Date = Date(),
@@ -45,7 +67,12 @@ final class Clip {
         sourceAppName: String? = nil,
         sourceAppBundleID: String? = nil,
         isPinned: Bool = false,
-        category: String? = nil
+        category: String? = nil,
+        title: String? = nil,
+        useCount: Int = 0,
+        lastUsedAt: Date? = nil,
+        reminderAt: Date? = nil,
+        manualOrder: Int? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -58,5 +85,10 @@ final class Clip {
         self.sourceAppBundleID = sourceAppBundleID
         self.isPinned = isPinned
         self.category = category
+        self.title = title
+        self.useCount = useCount
+        self.lastUsedAt = lastUsedAt
+        self.reminderAt = reminderAt
+        self.manualOrder = manualOrder
     }
 }

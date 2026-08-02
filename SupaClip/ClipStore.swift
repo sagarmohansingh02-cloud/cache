@@ -111,6 +111,53 @@ final class ClipStore {
         save()
     }
 
+    /// Replace a clip's text after the user edits it.
+    func updateText(_ text: String, on clip: Clip) {
+        clip.text = text
+        // Re-detect: editing "hello" into "#FF0000" should make it a colour.
+        clip.kind = ClipKind.detect(text: text).rawValue
+        save()
+    }
+
+    /// A user-supplied name shown instead of the clip's contents.
+    func updateTitle(_ title: String?, on clip: Clip) {
+        let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        clip.title = (trimmed?.isEmpty == false) ? trimmed : nil
+        save()
+    }
+
+    /// Called when a clip is pasted back, so "most used" and "recently used"
+    /// sorting have something to sort on.
+    func recordUse(of clip: Clip) {
+        clip.useCount += 1
+        clip.lastUsedAt = Date()
+        save()
+    }
+
+    func setReminder(_ date: Date?, on clip: Clip) {
+        clip.reminderAt = date
+        save()
+    }
+
+    /// Persist a hand-arranged order. Only the clips passed in are renumbered.
+    func applyManualOrder(_ clips: [Clip]) {
+        for (index, clip) in clips.enumerated() {
+            clip.manualOrder = index
+        }
+        save()
+    }
+
+    func deleteMany(_ clips: [Clip]) {
+        for clip in clips {
+            FileStorage.deleteFiles(
+                imageFilename: clip.imageFilename,
+                thumbnailFilename: clip.thumbnailFilename
+            )
+            context.delete(clip)
+        }
+        save()
+    }
+
     /// Deleting a row must delete its files too, or Application Support grows
     /// forever.
     func delete(_ clip: Clip) {

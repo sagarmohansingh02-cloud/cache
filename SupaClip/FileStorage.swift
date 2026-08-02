@@ -94,7 +94,7 @@ enum FileStorage {
     /// four times the bytes we asked for, on disk and in the thumbnail cache.
     /// Building an `NSBitmapImageRep` at explicit pixel dimensions and setting
     /// its `size` to match pins one point to one pixel, so 400 means 400.
-    private static func makeThumbnail(from image: NSImage, maxEdge: CGFloat) -> NSImage {
+    static func makeThumbnail(from image: NSImage, maxEdge: CGFloat) -> NSImage {
         guard let source = bitmapRepresentation(of: image) else { return image }
 
         let pixelWidth = CGFloat(source.pixelsWide)
@@ -155,6 +155,42 @@ enum FileStorage {
     private static func pngData(from image: NSImage) -> Data? {
         guard let representation = bitmapRepresentation(of: image) else { return nil }
         return representation.representation(using: .png, properties: [:])
+    }
+
+    /// Pixel dimensions of an image — points lie on Retina, so never use `.size`.
+    static func pixelSize(of image: NSImage) -> CGSize? {
+        guard let representation = bitmapRepresentation(of: image) else { return nil }
+        return CGSize(width: representation.pixelsWide, height: representation.pixelsHigh)
+    }
+
+    /// Re-encode an image to another format, for the convert action.
+    static func encode(_ image: NSImage, as format: ImageFormat, quality: Double = 0.85) -> Data? {
+        guard let representation = bitmapRepresentation(of: image) else { return nil }
+
+        var properties: [NSBitmapImageRep.PropertyKey: Any] = [:]
+        if format == .jpeg {
+            properties[.compressionFactor] = quality
+        }
+        return representation.representation(using: format.fileType, properties: properties)
+    }
+}
+
+/// Formats the convert action can write.
+enum ImageFormat: String, CaseIterable, Identifiable {
+    case png
+    case jpeg
+    case tiff
+
+    var id: String { rawValue }
+    var displayName: String { rawValue.uppercased() }
+    var fileExtension: String { self == .jpeg ? "jpg" : rawValue }
+
+    var fileType: NSBitmapImageRep.FileType {
+        switch self {
+        case .png:  .png
+        case .jpeg: .jpeg
+        case .tiff: .tiff
+        }
     }
 }
 

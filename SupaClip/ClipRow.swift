@@ -5,6 +5,9 @@ import SwiftUI
 struct ClipRow: View {
     let clip: Clip
     var isSelected: Bool = false
+    /// True when the clip is part of an active multi-selection, which is a
+    /// different thing from the keyboard cursor sitting on it.
+    var isMultiSelected: Bool = false
     let onSelect: () -> Void
     let onTogglePin: () -> Void
     let onDelete: () -> Void
@@ -20,6 +23,12 @@ struct ClipRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 8) {
+                if isMultiSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.accent)
+                }
+
                 leadingPreview
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -53,6 +62,7 @@ struct ClipRow: View {
     }
 
     private var backgroundFill: Color {
+        if isMultiSelected { return Theme.accent.opacity(0.14) }
         if isSelected { return Theme.accent.opacity(0.18) }
         return isHovering ? Theme.hoverFill : Color.clear
     }
@@ -149,6 +159,9 @@ struct ClipRow: View {
     }
 
     private var displayTitle: String {
+        // A user-supplied title always wins — that's the point of naming a clip.
+        if let title = clip.title, !title.isEmpty { return title }
+
         switch kind {
         case .image:
             return "Image"

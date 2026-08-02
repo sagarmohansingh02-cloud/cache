@@ -24,6 +24,10 @@ enum Theme {
     static let textRowHeight: CGFloat = 56
     static let imageRowHeight: CGFloat = 88
 
+    // Cards, for grid and board layouts.
+    static let cardHeight: CGFloat = 152
+    static let boardColumnWidth: CGFloat = 200
+
     // Surfaces — hairlines and hover fills, never drop shadows.
     static let cardBorder = Color.white.opacity(0.08)
     static let hoverFill = Color.white.opacity(0.06)
