@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import SwiftData
 import SwiftUI
 
@@ -14,6 +15,7 @@ import SwiftUI
 struct SupaClipApp: App {
     private let container: ModelContainer
     private let monitor: ClipboardMonitor
+    private let panelController: PanelController
 
     init() {
         let container: ModelContainer
@@ -40,6 +42,23 @@ struct SupaClipApp: App {
         // The poll timer starts with the app and outlives the window. Capture
         // must keep working whether or not the panel is open.
         monitor.start()
+
+        // The hotkey window. It gets its own `ContentView` — same list, but it
+        // knows how to close itself, which the menu bar window can't do.
+        let panelController = PanelController { dismiss in
+            AnyView(
+                ContentView(monitor: monitor, onDismiss: dismiss)
+                    .modelContainer(container)
+            )
+        }
+        self.panelController = panelController
+
+        // Fires on key *up* so the panel doesn't open while ⌃⌘ is still held.
+        // The handler runs on the main thread; `assumeIsolated` states that to
+        // the compiler rather than hopping and losing the keystroke's timing.
+        KeyboardShortcuts.onKeyUp(for: .togglePanel) {
+            MainActor.assumeIsolated { panelController.toggle() }
+        }
     }
 
     /// `~/Library/Application Support/<BundleID>/SupaClip.store`, alongside the

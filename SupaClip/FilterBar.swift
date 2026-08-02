@@ -5,11 +5,13 @@ struct FilterBar: View {
     @Binding var searchText: String
     @Binding var selectedKind: ClipKind?
     @Binding var selectedAppBundleID: String?
+    @Binding var selectedCategory: String?
 
     /// Kinds actually present in the current history — no point offering a
     /// "Colors" chip when nothing is a colour.
     let availableKinds: [ClipKind]
     let availableApps: [SourceApp]
+    let availableCategories: [String]
 
     /// Owned by ContentView so the field can be focused the instant the panel opens.
     @FocusState.Binding var isSearchFocused: Bool
@@ -21,7 +23,7 @@ struct FilterBar: View {
     }
 
     private var hasFilters: Bool {
-        !availableKinds.isEmpty || !availableApps.isEmpty
+        !availableKinds.isEmpty || !availableApps.isEmpty || !availableCategories.isEmpty
     }
 
     var body: some View {
@@ -76,6 +78,22 @@ struct FilterBar: View {
     private var chips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
+                ForEach(availableCategories, id: \.self) { category in
+                    chip(
+                        label: category,
+                        symbol: "folder",
+                        isActive: selectedCategory == category
+                    ) {
+                        withAnimation(Theme.standardSpring) {
+                            selectedCategory = (selectedCategory == category) ? nil : category
+                        }
+                    }
+                }
+
+                if !availableCategories.isEmpty && !availableKinds.isEmpty {
+                    Divider().frame(height: 12)
+                }
+
                 ForEach(availableKinds, id: \.self) { kind in
                     chip(
                         label: kind.displayName,

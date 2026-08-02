@@ -96,6 +96,15 @@ final class ClipStore {
         save()
     }
 
+    /// Assign a clip to a user-created category, or pass nil to move it back to
+    /// plain History. Categories are just names on clips — there's no separate
+    /// table, so a category stops existing when its last clip does.
+    func setCategory(_ category: String?, on clip: Clip) {
+        let trimmed = category?.trimmingCharacters(in: .whitespacesAndNewlines)
+        clip.category = (trimmed?.isEmpty == false) ? trimmed : nil
+        save()
+    }
+
     /// Deleting a row must delete its files too, or Application Support grows
     /// forever.
     func delete(_ clip: Clip) {

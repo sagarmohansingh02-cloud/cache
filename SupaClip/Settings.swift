@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import Observation
 import SwiftUI
 
@@ -59,6 +60,17 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Settings")
                 .font(.system(size: 13, weight: .medium))
+
+            VStack(alignment: .leading, spacing: 4) {
+                // The package's own recorder view: click it, press a combination,
+                // and it registers the global hotkey and persists it for us.
+                KeyboardShortcuts.Recorder("Global hotkey", name: .togglePanel)
+                    .font(.system(size: 13))
+
+                Text("Opens the floating panel from any app.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
 
             Toggle(isOn: $settings.isPaused) {
                 VStack(alignment: .leading, spacing: 4) {

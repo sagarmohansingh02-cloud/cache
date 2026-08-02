@@ -39,11 +39,24 @@ struct ContentView: View {
 
     let monitor: ClipboardMonitor?
 
+    /// How this view closes. The hotkey panel passes its own dismissal; the
+    /// menu bar window has none to give, so it falls back to closing the key
+    /// window directly.
+    var onDismiss: (() -> Void)?
+
     @State private var searchText = ""
     @State private var selectedKind: ClipKind?
     @State private var selectedAppBundleID: String?
+    @State private var selectedCategory: String?
     @State private var isShowingSettings = false
+
+    /// Set while the "New Category…" prompt is up, so we know what to file.
+    @State private var categoryTarget: Clip?
+    @State private var newCategoryName = ""
     @FocusState private var isSearchFocused: Bool
+
+    @State private var navigator = ListNavigator()
+    @State private var keyMonitor: Any?
 
     @Bindable private var settings = AppSettings.shared
 
@@ -57,8 +70,10 @@ struct ContentView: View {
                 searchText: $searchText,
                 selectedKind: $selectedKind,
                 selectedAppBundleID: $selectedAppBundleID,
+                selectedCategory: $selectedCategory,
                 availableKinds: availableKinds,
                 availableApps: availableApps,
+                availableCategories: availableCategories,
                 isSearchFocused: $isSearchFocused
             )
 
@@ -79,7 +94,45 @@ struct ContentView: View {
         .onAppear {
             // The search field is focused the instant the panel opens. Always.
             isSearchFocused = true
+            navigator.count = visibleClips.count
+            keyMonitor = KeyboardNavigationMonitor.install(navigator: navigator)
         }
+        .onDisappear {
+            // When the window closes, stop all UI work — only the poll timer
+            // should survive. A leaked key monitor would keep eating arrow keys
+            // for every other app.
+            KeyboardNavigationMonitor.remove(keyMonitor)
+            keyMonitor = nil
+        }
+        .onChange(of: visibleClips.count) { _, newCount in
+            navigator.count = newCount
+        }
+        .onChange(of: navigator.activationRequests) { _, _ in
+            activateSelection()
+        }
+        .onChange(of: navigator.dismissRequests) { _, _ in
+            dismissPanel()
+        }
+        .alert(
+            "New Category",
+            isPresented: Binding(
+                get: { categoryTarget != nil },
+                set: { if !$0 { categoryTarget = nil } }
+            )
+        ) {
+            TextField("Name", text: $newCategoryName)
+            Button("Create") {
+                if let clip = categoryTarget {
+                    store.setCategory(newCategoryName, on: clip)
+                }
+                categoryTarget = nil
+            }
+            Button("Cancel", role: .cancel) { categoryTarget = nil }
+        }
+        .onChange(of: searchText) { _, _ in navigator.resetSelection() }
+        .onChange(of: selectedCategory) { _, _ in navigator.resetSelection() }
+        .onChange(of: selectedKind) { _, _ in navigator.resetSelection() }
+        .onChange(of: selectedAppBundleID) { _, _ in navigator.resetSelection() }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(
                 settings: settings,
@@ -97,6 +150,7 @@ struct ContentView: View {
     private func matches(_ clip: Clip) -> Bool {
         if let selectedKind, clip.kind != selectedKind.rawValue { return false }
         if let selectedAppBundleID, clip.sourceAppBundleID != selectedAppBundleID { return false }
+        if let selectedCategory, clip.category != selectedCategory { return false }
 
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return true }
@@ -110,6 +164,10 @@ struct ContentView: View {
 
     private var filteredPinned: [Clip] { pinnedClips.filter(matches) }
     private var filteredRecent: [Clip] { recentClips.filter(matches) }
+
+    /// Pinned first, then history — the same order the list renders, so a single
+    /// index can address any visible row for keyboard navigation.
+    private var visibleClips: [Clip] { filteredPinned + filteredRecent }
 
     /// Chips only offer what's actually present, so you never tap a filter that
     /// can't match anything.
@@ -134,41 +192,109 @@ struct ContentView: View {
         return apps.sorted { $0.name < $1.name }
     }
 
+    private var availableCategories: [String] {
+        let names = (pinnedClips + recentClips).compactMap(\.category)
+        return Array(Set(names)).sorted()
+    }
+
     // MARK: - Pieces
 
     private var clipList: some View {
-        ScrollView {
-            // Lazy so off-screen rows are never built.
-            LazyVStack(spacing: Theme.rowSpacing, pinnedViews: [.sectionHeaders]) {
-                if !filteredPinned.isEmpty {
-                    Section {
-                        ForEach(filteredPinned) { row(for: $0) }
-                    } header: {
-                        sectionHeader("Pinned")
+        // `ScrollViewReader` is what lets ↑↓ scroll the selection into view —
+        // it hands back a proxy that can scroll to any row by its id.
+        ScrollViewReader { proxy in
+            ScrollView {
+                // Lazy so off-screen rows are never built.
+                LazyVStack(spacing: Theme.rowSpacing, pinnedViews: [.sectionHeaders]) {
+                    if !filteredPinned.isEmpty {
+                        Section {
+                            ForEach(Array(filteredPinned.enumerated()), id: \.element.id) { index, clip in
+                                row(for: clip, at: index)
+                            }
+                        } header: {
+                            sectionHeader("Pinned")
+                        }
+                    }
+
+                    if !filteredRecent.isEmpty {
+                        Section {
+                            ForEach(Array(filteredRecent.enumerated()), id: \.element.id) { index, clip in
+                                row(for: clip, at: filteredPinned.count + index)
+                            }
+                        } header: {
+                            if !filteredPinned.isEmpty { sectionHeader("History") }
+                        }
                     }
                 }
+                .padding(Theme.windowPadding)
+            }
+            .animation(Theme.standardSpring, value: filteredRecent.count)
+            .animation(Theme.standardSpring, value: filteredPinned.count)
+            .onChange(of: navigator.selectedIndex) { _, _ in
+                guard let selection = navigator.selection,
+                      selection < visibleClips.count
+                else { return }
 
-                if !filteredRecent.isEmpty {
-                    Section {
-                        ForEach(filteredRecent) { row(for: $0) }
-                    } header: {
-                        if !filteredPinned.isEmpty { sectionHeader("History") }
-                    }
+                withAnimation(Theme.standardSpring) {
+                    proxy.scrollTo(visibleClips[selection].id, anchor: .center)
                 }
             }
-            .padding(Theme.windowPadding)
         }
-        .animation(Theme.standardSpring, value: filteredRecent.count)
-        .animation(Theme.standardSpring, value: filteredPinned.count)
     }
 
-    private func row(for clip: Clip) -> some View {
+    private func row(for clip: Clip, at index: Int) -> some View {
         ClipRow(
             clip: clip,
+            isSelected: navigator.selection == index,
             onSelect: { select(clip) },
             onTogglePin: { withAnimation(Theme.standardSpring) { store.togglePin(clip) } },
             onDelete: { withAnimation(Theme.standardSpring) { store.delete(clip) } }
         )
+        .id(clip.id)
+        .contextMenu { contextMenu(for: clip) }
+    }
+
+    @ViewBuilder
+    private func contextMenu(for clip: Clip) -> some View {
+        Button(clip.isPinned ? "Unpin" : "Pin") {
+            withAnimation(Theme.standardSpring) { store.togglePin(clip) }
+        }
+
+        Menu("Category") {
+            ForEach(availableCategories, id: \.self) { category in
+                Button {
+                    store.setCategory(category, on: clip)
+                } label: {
+                    // A checkmark reads better than a disabled row for "already here".
+                    Text(clip.category == category ? "✓ \(category)" : category)
+                }
+            }
+
+            if !availableCategories.isEmpty { Divider() }
+
+            Button("New Category…") {
+                newCategoryName = ""
+                categoryTarget = clip
+            }
+
+            if clip.category != nil {
+                Divider()
+                Button("Remove from \(clip.category ?? "")") {
+                    store.setCategory(nil, on: clip)
+                }
+            }
+        }
+
+        Divider()
+
+        Button("Delete", role: .destructive) {
+            withAnimation(Theme.standardSpring) { store.delete(clip) }
+        }
+    }
+
+    private func activateSelection() {
+        guard let selection = navigator.selection, selection < visibleClips.count else { return }
+        select(visibleClips[selection])
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -204,7 +330,10 @@ struct ContentView: View {
     }
 
     private var hasActiveFilter: Bool {
-        !searchText.isEmpty || selectedKind != nil || selectedAppBundleID != nil
+        !searchText.isEmpty
+            || selectedKind != nil
+            || selectedAppBundleID != nil
+            || selectedCategory != nil
     }
 
     private var footer: some View {
@@ -292,6 +421,12 @@ struct ContentView: View {
     /// window is the reliable way out. The fallback scan handles the case where
     /// the panel somehow isn't key.
     private func dismissPanel() {
+        // The hotkey panel knows how to close itself; prefer that.
+        if let onDismiss {
+            onDismiss()
+            return
+        }
+
         if let keyWindow = NSApp.keyWindow {
             keyWindow.close()
             return

@@ -4,6 +4,7 @@ import SwiftUI
 /// A single clip card in the list.
 struct ClipRow: View {
     let clip: Clip
+    var isSelected: Bool = false
     let onSelect: () -> Void
     let onTogglePin: () -> Void
     let onDelete: () -> Void
@@ -32,12 +33,13 @@ struct ClipRow: View {
             .frame(height: isImage ? Theme.imageRowHeight : Theme.textRowHeight)
             .background(
                 RoundedRectangle(cornerRadius: Theme.cardCornerRadius, style: .continuous)
-                    .fill(isHovering ? Theme.hoverFill : Color.clear)
+                    .fill(backgroundFill)
             )
             .overlay(
-                // A 1px hairline, never a drop shadow.
+                // A 1px hairline, never a drop shadow. Keyboard selection is the
+                // only thing that gets the accent colour here.
                 RoundedRectangle(cornerRadius: Theme.cardCornerRadius, style: .continuous)
-                    .strokeBorder(Theme.cardBorder, lineWidth: 1)
+                    .strokeBorder(isSelected ? Theme.accent : Theme.cardBorder, lineWidth: 1)
             )
             .contentShape(Rectangle())
         }
@@ -47,6 +49,45 @@ struct ClipRow: View {
             // Hover states are mandatory on macOS; without them the list feels dead.
             withAnimation(Theme.hoverFade) { isHovering = hovering }
         }
+        .onDrag { dragProvider() }
+    }
+
+    private var backgroundFill: Color {
+        if isSelected { return Theme.accent.opacity(0.18) }
+        return isHovering ? Theme.hoverFill : Color.clear
+    }
+
+    /// What lands in the drop target when the row is dragged out.
+    ///
+    /// `NSItemProvider` is the system's "here is a thing, in whatever format you
+    /// can handle" wrapper. Handing over a file URL rather than raw bytes is what
+    /// lets an image dropped into Finder arrive as an actual file. Dragging files
+    /// out is also why the app sandbox is off.
+    private func dragProvider() -> NSItemProvider {
+        switch kind {
+        case .image:
+            if let filename = clip.imageFilename {
+                let url = FileStorage.clipsDirectory.appendingPathComponent(filename)
+                if FileManager.default.fileExists(atPath: url.path),
+                   let provider = NSItemProvider(contentsOf: url) {
+                    return provider
+                }
+            }
+
+        case .file:
+            if let first = (clip.text ?? "").split(separator: "\n").first {
+                let url = URL(fileURLWithPath: String(first))
+                if FileManager.default.fileExists(atPath: url.path),
+                   let provider = NSItemProvider(contentsOf: url) {
+                    return provider
+                }
+            }
+
+        default:
+            break
+        }
+
+        return NSItemProvider(object: (clip.text ?? "") as NSString)
     }
 
     // MARK: - Leading preview
