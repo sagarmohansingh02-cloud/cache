@@ -1,0 +1,18 @@
+# Xcode
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+
+# XcodeGen output — regenerate with `xcodegen generate`
+SupaClip.xcodeproj/
+
+# SPM
+.swiftpm/
+.build/
+Packages/
+
+# macOS
+.DS_Store

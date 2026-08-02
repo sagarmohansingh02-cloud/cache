@@ -1,0 +1,68 @@
+name: SupaClip
+
+options:
+  bundleIdPrefix: com.sagarmohansingh
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: "2.0.0"
+
+targets:
+  SupaClip:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+
+    sources:
+      - path: SupaClip
+
+    dependencies:
+      - package: KeyboardShortcuts
+
+    info:
+      path: SupaClip/Info.plist
+      properties:
+        # Menu bar only — no Dock icon, no main window on launch.
+        LSUIElement: true
+        CFBundleName: SupaClip
+        CFBundleDisplayName: SupaClip
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: "Copyright © 2026 Sagarmohan Singh. All rights reserved."
+
+    entitlements:
+      path: SupaClip/SupaClip.entitlements
+      properties:
+        # App Sandbox OFF — required for file drag-out and, later, Accessibility.
+        com.apple.security.app-sandbox: false
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sagarmohansingh.supaclip
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        GENERATE_INFOPLIST_FILE: NO
+        COMBINE_HIDPI_IMAGES: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+
+schemes:
+  SupaClip:
+    build:
+      targets:
+        SupaClip: all
+    run:
+      config: Debug
+    archive:
+      config: Release
