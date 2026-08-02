@@ -11,10 +11,12 @@ import SwiftData
 final class ClipStore {
     private let context: ModelContext
     private let settings: AppSettings
+    private let ocr: OCRService
 
     init(context: ModelContext, settings: AppSettings = .shared) {
         self.context = context
         self.settings = settings
+        self.ocr = OCRService(context: context)
     }
 
     // MARK: - Reads
@@ -86,6 +88,10 @@ final class ClipStore {
 
         prune()
         save()
+
+        // Fire-and-forget: the clip is already saved and visible: OCR only adds
+        // searchable text to it later.
+        ocr.enqueue(clip)
         return true
     }
 

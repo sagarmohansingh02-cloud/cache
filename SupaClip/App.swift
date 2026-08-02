@@ -16,6 +16,7 @@ struct SupaClipApp: App {
     private let container: ModelContainer
     private let monitor: ClipboardMonitor
     private let panelController: PanelController
+    private let screenshotWatcher: ScreenshotWatcher
 
     init() {
         let container: ModelContainer
@@ -42,6 +43,11 @@ struct SupaClipApp: App {
         // The poll timer starts with the app and outlives the window. Capture
         // must keep working whether or not the panel is open.
         monitor.start()
+
+        // Screenshots are filed even when they're never copied.
+        let screenshotWatcher = ScreenshotWatcher(store: store)
+        self.screenshotWatcher = screenshotWatcher
+        screenshotWatcher.start()
 
         // The hotkey window. It gets its own `ContentView` — same list, but it
         // knows how to close itself, which the menu bar window can't do.

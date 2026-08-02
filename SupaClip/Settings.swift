@@ -20,6 +20,14 @@ final class AppSettings {
     private enum Keys {
         static let isPaused = "isPaused"
         static let historyLimit = "historyLimit"
+        static let capturesScreenshots = "capturesScreenshots"
+    }
+
+    /// Watch the system screenshot folder and file new screenshots as clips.
+    /// On by default, but this one ingests things the user never copied, so it
+    /// gets an explicit switch.
+    var capturesScreenshots: Bool {
+        didSet { UserDefaults.standard.set(capturesScreenshots, forKey: Keys.capturesScreenshots) }
     }
 
     /// When paused the poll timer keeps running but nothing is recorded — the
@@ -41,8 +49,12 @@ final class AppSettings {
 
     private init() {
         let defaults = UserDefaults.standard
-        defaults.register(defaults: [Keys.historyLimit: Self.maxHistoryLimit])
+        defaults.register(defaults: [
+            Keys.historyLimit: Self.maxHistoryLimit,
+            Keys.capturesScreenshots: true,
+        ])
 
+        capturesScreenshots = defaults.bool(forKey: Keys.capturesScreenshots)
         isPaused = defaults.bool(forKey: Keys.isPaused)
         historyLimit = min(defaults.integer(forKey: Keys.historyLimit), Self.maxHistoryLimit)
     }
@@ -77,6 +89,18 @@ struct SettingsView: View {
                     Text("Pause capture")
                         .font(.system(size: 13))
                     Text("Nothing new is recorded while paused.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.switch)
+            .tint(Theme.accent)
+
+            Toggle(isOn: $settings.capturesScreenshots) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Save screenshots")
+                        .font(.system(size: 13))
+                    Text("New screenshots are added automatically, even if you never copy them.")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
