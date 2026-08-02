@@ -17,6 +17,7 @@ import IOKit.ps
 @MainActor
 final class ClipboardMonitor {
     private let store: ClipStore
+    private let settings: AppSettings
     private let pasteboard: NSPasteboard = .general
 
     private var timer: Timer?
@@ -41,8 +42,9 @@ final class ClipboardMonitor {
     private static let concealedType = NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")
     private static let transientType = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
 
-    init(store: ClipStore) {
+    init(store: ClipStore, settings: AppSettings = .shared) {
         self.store = store
+        self.settings = settings
         // Start from the current count so we don't capture whatever happened to
         // be on the pasteboard before launch.
         self.lastChangeCount = NSPasteboard.general.changeCount
@@ -110,20 +112,41 @@ final class ClipboardMonitor {
             return
         }
 
-        // Phase A captures text only. Images, files and type detection are Phase B.
-        guard let text = pasteboard.string(forType: .string) else { return }
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        // Paused means "don't record". The changeCount is already banked, so
+        // resuming won't retroactively grab whatever was copied while paused.
+        if settings.isPaused { return }
 
         // `frontmostApplication` is the app the user is actually working in.
         // This is correct here because our menu bar app never activates — it
         // doesn't steal focus, so whoever copied is still frontmost.
         let frontApp = NSWorkspace.shared.frontmostApplication
+        let appName = frontApp?.localizedName
+        let bundleID = frontApp?.bundleIdentifier
 
-        store.insertText(
-            text,
-            sourceAppName: frontApp?.localizedName,
-            sourceAppBundleID: frontApp?.bundleIdentifier
-        )
+        // Read order matters and mirrors the detection order: a copied file is
+        // also offered as a string, and an image is also offered as TIFF *and*
+        // sometimes a name — so the most specific representation wins.
+        switch ClipKind.detect(pasteboard: pasteboard) {
+        case .file:
+            guard let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL],
+                  !urls.isEmpty
+            else { return }
+            // Multiple files land as one clip, newline-separated, matching how
+            // the Finder hands them over.
+            let paths = urls.map(\.path).joined(separator: "\n")
+            store.insertText(paths, kind: .file, sourceAppName: appName, sourceAppBundleID: bundleID)
+
+        case .image:
+            // `NSImage(pasteboard:)` picks the best representation on offer.
+            guard let image = NSImage(pasteboard: pasteboard) else { return }
+            store.insertImage(image, sourceAppName: appName, sourceAppBundleID: bundleID)
+
+        case let kind:
+            guard let text = pasteboard.string(forType: .string),
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return }
+            store.insertText(text, kind: kind, sourceAppName: appName, sourceAppBundleID: bundleID)
+        }
     }
 
     // MARK: - Power

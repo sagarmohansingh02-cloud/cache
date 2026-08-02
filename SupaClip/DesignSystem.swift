@@ -22,6 +22,7 @@ enum Theme {
 
     // Rows
     static let textRowHeight: CGFloat = 56
+    static let imageRowHeight: CGFloat = 88
 
     // Surfaces — hairlines and hover fills, never drop shadows.
     static let cardBorder = Color.white.opacity(0.08)

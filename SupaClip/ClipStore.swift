@@ -1,21 +1,23 @@
+import AppKit
 import Foundation
 import SwiftData
 
-/// Thin wrapper over SwiftData for the writes the monitor performs.
+/// Thin wrapper over SwiftData for the writes the monitor and UI perform.
 ///
 /// Reads in the UI go through `@Query` instead — that's what gives us automatic
 /// list updates. This type exists so the polling engine never has to know
-/// anything about fetch descriptors or pruning rules.
+/// anything about fetch descriptors, pruning rules or file cleanup.
 @MainActor
 final class ClipStore {
-    /// Hard cap from the performance budget. Older unpinned clips are deleted on insert.
-    static let maxHistory = 2000
-
     private let context: ModelContext
+    private let settings: AppSettings
 
-    init(context: ModelContext) {
+    init(context: ModelContext, settings: AppSettings = .shared) {
         self.context = context
+        self.settings = settings
     }
+
+    // MARK: - Reads
 
     /// Newest clip, or nil on an empty store. Used for deduplication.
     /// Fetch limit 1 — never pull the whole table just to compare one string.
@@ -27,21 +29,25 @@ final class ClipStore {
         return (try? context.fetch(descriptor))?.first
     }
 
-    /// Insert a text clip, skipping exact repeats of the most recent one.
+    // MARK: - Inserts
+
+    /// Insert a text-shaped clip (text, link, code, colour, or a file path),
+    /// skipping exact repeats of the most recent one.
     /// Returns false when the clip was deduplicated away.
     @discardableResult
     func insertText(
         _ text: String,
+        kind: ClipKind = .text,
         sourceAppName: String?,
         sourceAppBundleID: String?
     ) -> Bool {
         // Deduplicate: re-copying the same string shouldn't stack up rows.
-        if let latest = mostRecent(), latest.kind == "text", latest.text == text {
+        if let latest = mostRecent(), latest.text == text, latest.kind == kind.rawValue {
             return false
         }
 
         let clip = Clip(
-            kind: "text",
+            kind: kind.rawValue,
             text: text,
             sourceAppName: sourceAppName,
             sourceAppBundleID: sourceAppBundleID
@@ -53,7 +59,81 @@ final class ClipStore {
         return true
     }
 
-    /// Delete everything past `maxHistory`, oldest first. Pinned clips are exempt.
+    /// Insert an image clip. The bytes go to disk; only filenames are stored.
+    /// No dedupe — two screenshots that look alike are still two clips.
+    @discardableResult
+    func insertImage(
+        _ image: NSImage,
+        sourceAppName: String?,
+        sourceAppBundleID: String?
+    ) -> Bool {
+        let filenames: (image: String, thumbnail: String)
+        do {
+            filenames = try FileStorage.writeImage(image)
+        } catch {
+            NSLog("SupaClip: could not write image — \(error.localizedDescription)")
+            return false
+        }
+
+        let clip = Clip(
+            kind: ClipKind.image.rawValue,
+            imageFilename: filenames.image,
+            thumbnailFilename: filenames.thumbnail,
+            sourceAppName: sourceAppName,
+            sourceAppBundleID: sourceAppBundleID
+        )
+        context.insert(clip)
+
+        prune()
+        save()
+        return true
+    }
+
+    // MARK: - Mutations
+
+    func togglePin(_ clip: Clip) {
+        clip.isPinned.toggle()
+        save()
+    }
+
+    /// Deleting a row must delete its files too, or Application Support grows
+    /// forever.
+    func delete(_ clip: Clip) {
+        FileStorage.deleteFiles(
+            imageFilename: clip.imageFilename,
+            thumbnailFilename: clip.thumbnailFilename
+        )
+        context.delete(clip)
+        save()
+    }
+
+    /// Wipe everything, pinned clips included, and empty the Clips folder.
+    func clearAll() {
+        do {
+            try context.delete(model: Clip.self)
+        } catch {
+            NSLog("SupaClip: clear all failed — \(error.localizedDescription)")
+            return
+        }
+
+        // Remove every file rather than walking rows we've already deleted.
+        let directory = FileStorage.clipsDirectory
+        if let contents = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        ) {
+            for url in contents {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+
+        save()
+    }
+
+    // MARK: - Pruning
+
+    /// Delete everything past the user's history limit, oldest first.
+    /// Pinned clips are exempt.
     ///
     /// Deliberately built on `fetchCount` + `fetchLimit` rather than
     /// `fetchOffset`. An offset-only descriptor does **not** reliably skip rows
@@ -62,28 +142,25 @@ final class ClipStore {
     /// fetching only the overflow, oldest-first, avoids the trap entirely and
     /// still never loads the full history.
     private func prune() {
+        let limit = min(settings.historyLimit, AppSettings.maxHistoryLimit)
+
         let unpinned = FetchDescriptor<Clip>(predicate: #Predicate { $0.isPinned == false })
-        guard let total = try? context.fetchCount(unpinned), total > Self.maxHistory else {
-            return
-        }
+        guard let total = try? context.fetchCount(unpinned), total > limit else { return }
 
         var descriptor = FetchDescriptor<Clip>(
             predicate: #Predicate { $0.isPinned == false },
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]   // oldest first
         )
-        descriptor.fetchLimit = total - Self.maxHistory
+        descriptor.fetchLimit = total - limit
 
         guard let overflow = try? context.fetch(descriptor) else { return }
         for clip in overflow {
-            // Phase B: also delete the clip's image + thumbnail files here,
-            // or Application Support grows forever.
+            FileStorage.deleteFiles(
+                imageFilename: clip.imageFilename,
+                thumbnailFilename: clip.thumbnailFilename
+            )
             context.delete(clip)
         }
-    }
-
-    func delete(_ clip: Clip) {
-        context.delete(clip)
-        save()
     }
 
     private func save() {

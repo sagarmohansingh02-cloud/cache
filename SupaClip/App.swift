@@ -42,17 +42,10 @@ struct SupaClipApp: App {
         monitor.start()
     }
 
-    /// `~/Library/Application Support/<BundleID>/SupaClip.store`
+    /// `~/Library/Application Support/<BundleID>/SupaClip.store`, alongside the
+    /// `Clips/` folder. One definition of that path lives in `FileStorage`.
     private static func storeURL() -> URL {
-        let fileManager = FileManager.default
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.sagarmohansingh.supaclip"
-
-        let directory = fileManager
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(bundleID, isDirectory: true)
-
-        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory.appendingPathComponent("SupaClip.store")
+        FileStorage.containerDirectory.appendingPathComponent("SupaClip.store")
     }
 
     var body: some Scene {
