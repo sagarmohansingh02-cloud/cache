@@ -60,7 +60,7 @@ struct SupaClipApp: App {
         // knows how to close itself, which the menu bar window can't do.
         let panelController = PanelController { dismiss in
             AnyView(
-                ContentView(monitor: monitor, onDismiss: dismiss)
+                ContentView(layout: .library, monitor: monitor, onDismiss: dismiss)
                     .modelContainer(container)
             )
         }

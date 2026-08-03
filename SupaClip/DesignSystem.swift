@@ -51,6 +51,11 @@ enum Theme {
 
     static let panelWidth: CGFloat = 360
     static let panelHeight: CGFloat = 420
+
+    /// The Library window. Wide enough for five columns of tiles, which is what
+    /// turns the history from a list you read into a grid you scan.
+    static let libraryWidth: CGFloat = 1080
+    static let libraryHeight: CGFloat = 760
 }
 
 /// SwiftUI has no native equivalent of `NSVisualEffectView`, so we bridge it.

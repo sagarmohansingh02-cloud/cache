@@ -60,7 +60,7 @@ final class PanelController {
 
     private func makePanel() -> FloatingPanel {
         let panel = FloatingPanel(
-            contentRect: NSRect(x: 0, y: 0, width: Theme.panelWidth, height: Theme.panelHeight),
+            contentRect: NSRect(x: 0, y: 0, width: Theme.libraryWidth, height: Theme.libraryHeight),
             // `.nonactivatingPanel` is the important one: the panel accepts key
             // input without making SupaClip the active application.
             styleMask: [.nonactivatingPanel, .borderless],
@@ -112,7 +112,7 @@ final class PanelController {
 
         let originX = visible.midX - size.width / 2
         // AppKit's y axis grows upward from the bottom of the screen.
-        let originY = visible.maxY - (visible.height * 0.22) - size.height
+        let originY = visible.midY - size.height / 2
 
         panel.setFrameOrigin(NSPoint(x: originX.rounded(), y: originY.rounded()))
     }
