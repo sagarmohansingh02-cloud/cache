@@ -46,7 +46,7 @@ Requires **macOS 14 (Sonoma) or later**. Built and tested on macOS 26.
 
 ```bash
 brew install xcodegen
-git clone https://github.com/<your-account>/cache.git
+git clone https://github.com/sagarmohansingh02-cloud/cache.git
 cd cache
 xcodegen generate
 xcodebuild -project Cache.xcodeproj -scheme Cache -configuration Release build
