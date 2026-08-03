@@ -32,6 +32,7 @@ struct NotchView: View {
 
     @FocusState private var isSearchFocused: Bool
     @State private var isHoveringQuit = false
+    @State private var hasAppeared = false
 
     @Bindable private var settings = AppSettings.shared
 
@@ -57,25 +58,16 @@ struct NotchView: View {
             // screen edge cleanly, rounded below where it hangs into the desktop.
             .background(LiquidGlass(cornerRadius: 0, style: .regular))
             .clipShape(Self.stripShape)
+            // No border. The glass edge is the edge — an outline on top of it
+            // just reads as a seam. The only stroke left is the drop target,
+            // which is feedback rather than decoration.
             .overlay(
                 Self.stripShape
                     .strokeBorder(
-                        isTargetedForDrop ? Theme.accent : Color.white.opacity(0.12),
-                        lineWidth: isTargetedForDrop ? 2 : 1
+                        isTargetedForDrop ? Theme.accent : .clear,
+                        lineWidth: isTargetedForDrop ? 2 : 0
                     )
             )
-            // A bright hairline just inside the top edge — the specular lip
-            // Apple's own glass chrome has where light catches the surface.
-            .overlay(alignment: .bottom) {
-                LinearGradient(
-                    colors: [.white.opacity(0.10), .clear],
-                    startPoint: .bottom,
-                    endPoint: .top
-                )
-                .frame(height: 1)
-                .blendMode(.plusLighter)
-                .allowsHitTesting(false)
-            }
 
             Spacer(minLength: 0).allowsHitTesting(false)
         }
@@ -86,7 +78,16 @@ struct NotchView: View {
             handleDrop(providers)
         }
         .preferredColorScheme(.dark)
-        .onAppear { isSearchFocused = true }
+        // Drops out from behind the notch. This is done on the *content*, not
+        // the window: animating an NSWindow's frame while it hosts SwiftUI
+        // throws inside AppKit's layout pass and aborts the process.
+        .offset(y: hasAppeared ? 0 : -26)
+        .opacity(hasAppeared ? 1 : 0)
+        .scaleEffect(hasAppeared ? 1 : 0.97, anchor: .top)
+        .onAppear {
+            withAnimation(Theme.surfaceSpring) { hasAppeared = true }
+            isSearchFocused = true
+        }
         .onExitCommand { onDismiss() }
         .animation(Theme.standardSpring, value: selectedKind)
         .animation(Theme.standardSpring, value: selectedCategory)

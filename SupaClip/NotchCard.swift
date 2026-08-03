@@ -41,21 +41,7 @@ struct NotchCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(isHovered ? Theme.accent : .white.opacity(0.12), lineWidth: isHovered ? 1.5 : 1)
-            )
-            // A soft top-edge highlight, so a card catches light like glass
-            // rather than sitting flat.
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.white.opacity(0.22), .clear],
-                            startPoint: .top,
-                            endPoint: .center
-                        ),
-                        lineWidth: 1
-                    )
-                    .allowsHitTesting(false)
+                    .strokeBorder(isHovered ? Theme.accent : .white.opacity(0.08), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(alignment: .topTrailing) { hoverActions }

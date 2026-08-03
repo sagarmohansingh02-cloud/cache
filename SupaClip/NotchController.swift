@@ -154,9 +154,19 @@ final class NotchController {
         // while the full surface is open.
         trayPanel?.orderOut(nil)
 
+        // Start transparent so the window never pops in ahead of the content's
+        // own slide. Only `alphaValue` is animated — animating an NSWindow's
+        // *frame* while it hosts SwiftUI throws inside AppKit's layout pass.
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
         panel.makeKey()
         isShowing = true
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.18
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+        }
     }
 
     /// Grow or shrink the strip so the detail card has room. Animated, because
@@ -221,9 +231,28 @@ final class NotchController {
 
     func hide() {
         hideDetail()
-        panel?.orderOut(nil)
         isShowing = false
-        updateTray()
+
+        guard let panel, panel.isVisible else {
+            panel?.orderOut(nil)
+            updateTray()
+            return
+        }
+
+        // Fade out rather than vanish. Faster than the entrance — dismissals
+        // should feel immediate even when they're animated.
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.13
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            MainActor.assumeIsolated {
+                panel.orderOut(nil)
+                // Reset for the next open, which rebuilds the content anyway.
+                panel.alphaValue = 1
+                self?.updateTray()
+            }
+        })
     }
 
     func toggle() {
