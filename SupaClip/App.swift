@@ -56,6 +56,7 @@ struct SupaClipApp: App {
         self.screenshotWatcher = screenshotWatcher
         // Only watches if the user has asked for it — see AppSettings.
         screenshotWatcher.syncWithSettings()
+        screenshotWatcher.observeActivation()
         AppSettings.shared.onCapturesScreenshotsChanged = { [weak screenshotWatcher] in
             screenshotWatcher?.syncWithSettings()
         }

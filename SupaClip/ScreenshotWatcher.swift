@@ -18,6 +18,11 @@ final class ScreenshotWatcher {
     private var source: DispatchSourceFileSystemObject?
     private var descriptor: CInt = -1
 
+    /// The folder currently being watched, so a change of location can be
+    /// noticed and followed.
+    private var watchedDirectory: URL?
+    private var activationObserver: NSObjectProtocol?
+
     /// Filenames seen at start-up, so existing screenshots aren't back-filled.
     private var knownFiles: Set<String> = []
 
@@ -36,6 +41,23 @@ final class ScreenshotWatcher {
         if settings.capturesScreenshots { start() } else { stop() }
     }
 
+    /// Follow the user's screenshot location if it has changed.
+    ///
+    /// People move this — to `~/Screenshots`, to a Dropbox folder, to an
+    /// external drive — and some do it *because* the app asked for Desktop
+    /// access. Resolving the path once at launch would leave the app watching a
+    /// folder nothing is being written to, silently capturing nothing.
+    func refreshLocation() {
+        guard settings.capturesScreenshots else { return }
+
+        let current = Self.screenshotDirectory()
+        guard current != watchedDirectory else { return }
+
+        NSLog("Cache: screenshot folder moved to \(current.path) — following it")
+        stop()
+        start()
+    }
+
     func start() {
         guard source == nil else { return }
 
@@ -46,6 +68,7 @@ final class ScreenshotWatcher {
         guard settings.capturesScreenshots else { return }
 
         let directory = Self.screenshotDirectory()
+        watchedDirectory = directory
         knownFiles = Self.imageFilenames(in: directory)
 
         // A file descriptor opened `O_EVTONLY` is a watch handle, not a read
@@ -59,11 +82,24 @@ final class ScreenshotWatcher {
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: descriptor,
-            eventMask: [.write],       // fires when entries are added or removed
+            // `.write` catches new files. `.delete` and `.rename` catch the
+            // folder itself disappearing — which is what happens when someone
+            // points macOS at a different location, or renames the old one.
+            eventMask: [.write, .delete, .rename],
             queue: .main
         )
         source.setEventHandler { [weak self] in
-            MainActor.assumeIsolated { self?.directoryChanged(directory) }
+            MainActor.assumeIsolated {
+                guard let self, let source = self.source else { return }
+                if source.data.contains(.delete) || source.data.contains(.rename) {
+                    // The folder we were watching is gone. Re-resolve and
+                    // re-attach rather than sitting on a dead descriptor.
+                    self.stop()
+                    self.start()
+                    return
+                }
+                self.directoryChanged(directory)
+            }
         }
         source.setCancelHandler { [descriptor] in
             close(descriptor)
@@ -77,6 +113,21 @@ final class ScreenshotWatcher {
         source?.cancel()
         source = nil
         descriptor = -1
+        watchedDirectory = nil
+    }
+
+    /// Re-check the location whenever the app comes forward. Changing the
+    /// screenshot folder is a System Settings action, so the user is elsewhere
+    /// when it happens and we would otherwise not hear about it until relaunch.
+    func observeActivation() {
+        guard activationObserver == nil else { return }
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshLocation() }
+        }
     }
 
     // MARK: - Reacting
