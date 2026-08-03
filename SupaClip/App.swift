@@ -97,7 +97,8 @@ struct SupaClipApp: App {
                         monitor.acknowledgeSelfCopy()
                         dismiss()
                     },
-                    onClose: dismiss
+                    onClose: dismiss,
+                    onSaveText: { edited in store.updateEditedText(edited, on: clip) }
                 )
                 .modelContainer(container)
             )

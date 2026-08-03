@@ -19,7 +19,7 @@ enum NotchGeometry {
 
     /// The detail card is its own window, sized to its content, sitting just
     /// below the strip. It is never resized — see NotchController.showDetail.
-    static let detailSize = CGSize(width: 720, height: 260)
+    static let detailSize = CGSize(width: 720, height: 320)
 
     static func detailFrame(on screen: NSScreen) -> CGRect {
         let strip = panelFrame(on: screen)

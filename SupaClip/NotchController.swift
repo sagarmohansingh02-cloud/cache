@@ -176,10 +176,18 @@ final class NotchController {
         let panel = detailPanel ?? makeDetailPanel()
         detailPanel = panel
 
+        // Order out *first*, every time. Clicking the eye on a second card while
+        // the card is already open would otherwise swap the content view and set
+        // the frame on a visible SwiftUI-hosting window — the same layout-time
+        // invalidation that aborted the process before. Hidden windows can be
+        // rearranged freely.
+        panel.orderOut(nil)
+
         panel.contentView = FirstMouseHostingView(
             rootView: builder(clip) { [weak self] in self?.hideDetail() }
         )
         panel.setFrame(NotchGeometry.detailFrame(on: screen), display: false)
+
         panel.orderFrontRegardless()
         panel.makeKey()
         isDetailOpen = true

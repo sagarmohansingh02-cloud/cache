@@ -146,6 +146,21 @@ final class ClipStore {
         save()
     }
 
+    /// Save an edit made in the detail card.
+    ///
+    /// For an image that means rewriting the recognised text, which is also the
+    /// search index — so trimming a full-screen screenshot down to the two lines
+    /// that mattered makes it *easier* to find later, not harder. For everything
+    /// else it edits the clip's own text.
+    func updateEditedText(_ text: String, on clip: Clip) {
+        if ClipKind(rawValue: clip.kind) == .image {
+            clip.ocrText = text
+            save()
+        } else {
+            updateText(text, on: clip)
+        }
+    }
+
     /// A user-supplied name shown instead of the clip's contents.
     func updateTitle(_ title: String?, on clip: Clip) {
         let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines)
