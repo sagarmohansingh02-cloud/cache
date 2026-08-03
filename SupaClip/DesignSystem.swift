@@ -39,6 +39,13 @@ enum Theme {
 
     // Motion
     static let standardSpring = Animation.spring(response: 0.3, dampingFraction: 0.8)
+
+    /// Slightly quicker and springier, for the hover lift on cards and pills.
+    static let cardSpring = Animation.spring(response: 0.26, dampingFraction: 0.7)
+
+    /// Glass surfaces arriving and leaving — a touch slower so the material
+    /// reads as settling rather than snapping.
+    static let surfaceSpring = Animation.spring(response: 0.38, dampingFraction: 0.82)
     static let hoverFade = Animation.easeOut(duration: 0.12)
 
     static let panelWidth: CGFloat = 360

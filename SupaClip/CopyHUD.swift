@@ -99,13 +99,11 @@ private struct CopyHUDView: View {
             key("C")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Theme.notchSurface.opacity(0.92))
-        )
+        .background(LiquidGlass(cornerRadius: 22, style: .clear))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(.white.opacity(0.16), lineWidth: 1)
         )
         .opacity(visibility.isVisible ? 1 : 0)
         .scaleEffect(visibility.isVisible ? 1 : 0.92)

@@ -35,18 +35,38 @@ struct NotchCard: View {
                 footer
                     .frame(width: Self.side, height: 26)
             }
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.06)))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(isHovered ? Theme.accent : .white.opacity(0.10), lineWidth: isHovered ? 2 : 1)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.white.opacity(isHovered ? 0.12 : 0.06))
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(isHovered ? Theme.accent : .white.opacity(0.12), lineWidth: isHovered ? 1.5 : 1)
+            )
+            // A soft top-edge highlight, so a card catches light like glass
+            // rather than sitting flat.
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.22), .clear],
+                            startPoint: .top,
+                            endPoint: .center
+                        ),
+                        lineWidth: 1
+                    )
+                    .allowsHitTesting(false)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(alignment: .topTrailing) { hoverActions }
             .overlay(alignment: .topLeading) { textBadge }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .animation(Theme.hoverFade, value: isHovered)
+        // Rises toward the pointer. Spring rather than a linear fade, so it
+        // settles with a little weight instead of arriving dead.
+        .scaleEffect(isHovered ? 1.045 : 1.0)
+        .animation(Theme.cardSpring, value: isHovered)
         .onDrag { dragProvider() }
         .help(clip.sortableText.prefix(200).description)
     }

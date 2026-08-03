@@ -51,28 +51,31 @@ struct NotchView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(
-                // Square across the top so it meets the screen edge cleanly,
-                // rounded below where it hangs into the desktop.
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 18,
-                    bottomTrailingRadius: 18,
-                    topTrailingRadius: 0,
-                    style: .continuous
-                )
-                .fill(.black.opacity(0.86))
-            )
+            // Liquid Glass, clipped to the strip's shape. The glass view itself
+            // only does uniform corners, so its radius is left at zero and the
+            // shape comes from the clip — square across the top so it meets the
+            // screen edge cleanly, rounded below where it hangs into the desktop.
+            .background(LiquidGlass(cornerRadius: 0, style: .regular))
+            .clipShape(Self.stripShape)
             .overlay(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: 18,
-                    bottomTrailingRadius: 18,
-                    topTrailingRadius: 0,
-                    style: .continuous
-                )
-                .strokeBorder(isTargetedForDrop ? Theme.accent : Color.white.opacity(0.08), lineWidth: 1)
+                Self.stripShape
+                    .strokeBorder(
+                        isTargetedForDrop ? Theme.accent : Color.white.opacity(0.12),
+                        lineWidth: isTargetedForDrop ? 2 : 1
+                    )
             )
+            // A bright hairline just inside the top edge — the specular lip
+            // Apple's own glass chrome has where light catches the surface.
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [.white.opacity(0.10), .clear],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+                .frame(height: 1)
+                .blendMode(.plusLighter)
+                .allowsHitTesting(false)
+            }
 
             Spacer(minLength: 0).allowsHitTesting(false)
         }
@@ -103,6 +106,14 @@ struct NotchView: View {
             Button("Cancel", role: .cancel) { categoryTarget = nil }
         }
     }
+
+    static let stripShape = UnevenRoundedRectangle(
+        topLeadingRadius: 0,
+        bottomLeadingRadius: 22,
+        bottomTrailingRadius: 22,
+        topTrailingRadius: 0,
+        style: .continuous
+    )
 
     /// Height of the physical notch on this screen, or a small lip when there
     /// isn't one.

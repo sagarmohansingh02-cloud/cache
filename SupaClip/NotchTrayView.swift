@@ -80,14 +80,14 @@ struct NotchTrayView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(Theme.notchSurface)
-        )
+        .background(LiquidGlass(cornerRadius: 22, style: .regular))
+        .clipShape(Capsule(style: .continuous))
         .overlay(
             Capsule(style: .continuous)
-                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
         )
+        // Lifts toward the pointer, the way Apple's glass controls do.
+        .scaleEffect(isHovering ? 1.03 : 1.0)
         // The drag handle sits on top of everything so a drag started anywhere
         // on the pill pulls the whole stack.
         .overlay(
