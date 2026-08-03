@@ -42,6 +42,24 @@ and Return move and paste, Escape backs out.
 
 Requires **macOS 14 (Sonoma) or later**. Built and tested on macOS 26.
 
+### Download
+
+Grab the latest **`Cache-1.0.0.dmg`** from
+[Releases](https://github.com/sagarmohansingh02-cloud/cache/releases), open it,
+and drag Cache onto Applications.
+
+On first launch macOS will say the app is from an unidentified developer,
+because this build is not signed with a paid Apple Developer certificate.
+Right-click **Cache.app → Open** and confirm. Once only.
+
+### Build the installer yourself
+
+```bash
+./scripts/make-dmg.sh
+```
+
+Builds Release and writes `dist/Cache-<version>.dmg`.
+
 ### From source
 
 ```bash

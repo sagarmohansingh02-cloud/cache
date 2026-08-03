@@ -17,3 +17,6 @@ Packages/
 
 # macOS
 .DS_Store
+
+# Packaged output — attached to GitHub releases, not committed
+dist/
