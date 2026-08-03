@@ -30,6 +30,8 @@ struct NotchView: View {
     @State private var categoryTarget: Clip?
     @State private var newCategoryName = ""
 
+    @FocusState private var isSearchFocused: Bool
+
     @Bindable private var settings = AppSettings.shared
 
     private var store: ClipStore {
@@ -80,6 +82,8 @@ struct NotchView: View {
             handleDrop(providers)
         }
         .preferredColorScheme(.dark)
+        .onAppear { isSearchFocused = true }
+        .onExitCommand { onDismiss() }
         .animation(Theme.standardSpring, value: selectedKind)
         .animation(Theme.standardSpring, value: selectedCategory)
         .animation(Theme.standardSpring, value: filteredClips.count)
@@ -115,15 +119,36 @@ struct NotchView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.5))
 
+                // Without `focused` + focusing on appear the field never becomes
+                // first responder, so typing went nowhere and search looked
+                // broken. The panel is non-activating, so nothing else is going
+                // to hand it focus for us.
                 TextField("Search", text: $searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .foregroundStyle(.white)
+                    .focused($isSearchFocused)
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                        isSearchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.45))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(Capsule().fill(.white.opacity(0.08)))
             .frame(width: 200)
+            .contentShape(Capsule())
+            // Clicking anywhere on the pill focuses the field, not just the
+            // few pixels of text baseline.
+            .onTapGesture { isSearchFocused = true }
 
             // Chips scroll rather than wrap — collections plus kinds can easily
             // outgrow the strip's width.
@@ -159,15 +184,23 @@ struct NotchView: View {
                 }
                 .padding(.horizontal, 1)
             }
-
-            Spacer(minLength: 0)
+            // A horizontal ScrollView has no intrinsic width and will happily
+            // consume the entire row, squeezing the close button off the edge —
+            // which is exactly why the cross could not be clicked. Yielding
+            // layout priority lets the button claim its size first.
+            .layoutPriority(-1)
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10))
                     .foregroundStyle(.white.opacity(0.5))
+                    // A 10pt glyph is a 10pt target. Padding gives it a real one.
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .fixedSize()
+            .help("Close")
         }
     }
 
