@@ -76,7 +76,8 @@ struct SupaClipApp: App {
                 NotchView(
                     monitor: monitor,
                     onDismiss: dismiss,
-                    onPreview: { clip in notchControllerBox.value?.showDetail(for: clip) }
+                    onPreview: { clip in notchControllerBox.value?.showDetail(for: clip) },
+                    onOpenLibrary: { panelController.toggle() }
                 )
                 .modelContainer(container)
             )

@@ -20,6 +20,9 @@ struct NotchView: View {
     /// aborts the process. See NotchController.showDetail.
     var onPreview: ((Clip) -> Void)?
 
+    /// Opens the full library panel from the strip's expand button.
+    var onOpenLibrary: (() -> Void)?
+
     @State private var searchText = ""
     @State private var selectedKind: ClipKind?
     @State private var selectedCategory: String?
@@ -33,6 +36,8 @@ struct NotchView: View {
     @FocusState private var isSearchFocused: Bool
     @State private var isHoveringQuit = false
     @State private var hasAppeared = false
+    @State private var showPinnedOnly = false
+    @State private var showTextOnly = false
 
     @Bindable private var settings = AppSettings.shared
 
@@ -46,11 +51,12 @@ struct NotchView: View {
             // hanging *from* the notch rather than sitting on top of it.
             Color.clear.frame(height: notchInset)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 14) {
                 topBar
+                chipRow
                 dayStrip
             }
-            .padding(12)
+            .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             // Liquid Glass, clipped to the strip's shape. The glass view itself
             // only does uniform corners, so its radius is left at zero and the
@@ -126,19 +132,18 @@ struct NotchView: View {
     // MARK: - Top bar
 
     private var topBar: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 6) {
+        HStack(spacing: 12) {
+            // Unboxed and large. A search field wrapped in a pill reads as a
+            // control you have to go and click; this reads as the thing the
+            // surface is for, and it already has focus when the strip opens.
+            HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
 
-                // Without `focused` + focusing on appear the field never becomes
-                // first responder, so typing went nowhere and search looked
-                // broken. The panel is non-activating, so nothing else is going
-                // to hand it focus for us.
                 TextField("Search", text: $searchText)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 12))
+                    .font(.system(size: 17))
                     .foregroundStyle(.white)
                     .focused($isSearchFocused)
 
@@ -148,112 +153,155 @@ struct NotchView: View {
                         isSearchFocused = true
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.white.opacity(0.45))
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.4))
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(.white.opacity(0.08)))
-            .frame(width: 200)
-            .contentShape(Capsule())
-            // Clicking anywhere on the pill focuses the field, not just the
-            // few pixels of text baseline.
+            .contentShape(Rectangle())
             .onTapGesture { isSearchFocused = true }
 
-            // Chips scroll rather than wrap — collections plus kinds can easily
-            // outgrow the strip's width.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    chip(label: "All", count: clips.count, isActive: !hasFilter) {
-                        selectedKind = nil
-                        selectedCategory = nil
-                    }
+            Spacer(minLength: 8)
 
-                    ForEach(availableCategories, id: \.name) { collection in
-                        chip(
-                            label: collection.name,
-                            count: collection.count,
-                            symbol: "folder",
-                            isActive: selectedCategory == collection.name
-                        ) {
-                            selectedKind = nil
-                            selectedCategory = selectedCategory == collection.name ? nil : collection.name
-                        }
-                    }
-
-                    ForEach(availableKinds, id: \.kind) { entry in
-                        chip(
-                            label: entry.kind.displayName,
-                            count: entry.count,
-                            isActive: selectedKind == entry.kind
-                        ) {
-                            selectedCategory = nil
-                            selectedKind = selectedKind == entry.kind ? nil : entry.kind
-                        }
-                    }
-                }
-                .padding(.horizontal, 1)
+            circleAction("square.and.pencil", help: "New collection") {
+                newCategoryName = ""
+                categoryTarget = clips.first
             }
-            // A horizontal ScrollView has no intrinsic width and will happily
-            // consume the entire row, squeezing the close button off the edge —
-            // which is exactly why the cross could not be clicked. Yielding
-            // layout priority lets the button claim its size first.
-            .layoutPriority(-1)
+            circleAction("doc.text.viewfinder", help: "Only clips with recognised text") {
+                withAnimation(Theme.standardSpring) { showTextOnly.toggle() }
+            }
+            circleAction("eyedropper", help: "Only colours") {
+                withAnimation(Theme.standardSpring) {
+                    selectedKind = selectedKind == .color ? nil : .color
+                }
+            }
+            circleAction("arrow.up.forward", help: "Open full library") {
+                onOpenLibrary?()
+                onDismiss()
+            }
 
             quitButton
-
-            // Visual separation so quitting is never a near-miss of "close".
-            Divider().frame(height: 14).overlay(.white.opacity(0.15))
-
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.5))
-                    // A 10pt glyph is a 10pt target. Padding gives it a real one.
-                    .frame(width: 22, height: 22)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .fixedSize()
-            .help("Close (Esc)")
+            closeButton
         }
     }
 
-    /// Quitting from the notch, since the strip is the surface most people
-    /// actually use and the only other Quit is buried in the menu bar panel.
-    ///
-    /// A plain button rather than a menu: menus inside a non-activating,
-    /// borderless panel are unreliable, and this needs to work every time.
-    /// It reads red on hover so it can't be mistaken for the close button, and
-    /// it sits behind a divider so a near-miss lands on nothing.
+    /// The circular buttons along the top right.
+    private func circleAction(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white.opacity(0.8))
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(.white.opacity(0.09)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    /// Quitting from the notch. Red on hover and separated from close by the
+    /// other actions, so it can never be a near-miss of dismissing the strip.
     private var quitButton: some View {
         Button {
             NSApplication.shared.terminate(nil)
         } label: {
             Image(systemName: "power")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(isHoveringQuit ? Color.red : .white.opacity(0.45))
-                .frame(width: 22, height: 22)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isHoveringQuit ? Color.red : .white.opacity(0.55))
+                .frame(width: 34, height: 34)
                 .background(
-                    Circle().fill(isHoveringQuit ? Color.red.opacity(0.15) : .clear)
+                    Circle().fill(isHoveringQuit ? Color.red.opacity(0.18) : .white.opacity(0.09))
                 )
-                .contentShape(Rectangle())
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .fixedSize()
         .onHover { hovering in
             withAnimation(Theme.hoverFade) { isHoveringQuit = hovering }
         }
-        .help("Quit SupaClip — clipboard capture stops until you open it again")
+        .help("Quit SupaClip — capture stops until you open it again")
     }
 
-    private var hasFilter: Bool { selectedKind != nil || selectedCategory != nil }
+    private var closeButton: some View {
+        Button(action: onDismiss) {
+            Image(systemName: "xmark")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(.white.opacity(0.09)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help("Close (Esc)")
+    }
 
-    /// Chips carry their count, so you can see what's in a collection without
-    /// opening it.
+    /// Filter chips. A round star for pinned, then All, collections and kinds,
+    /// then a plus that makes a new collection.
+    private var chipRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                iconChip("star.fill", isActive: showPinnedOnly) {
+                    withAnimation(Theme.standardSpring) { showPinnedOnly.toggle() }
+                }
+
+                chip(label: "All", count: clips.count, isActive: !hasFilter) {
+                    selectedKind = nil
+                    selectedCategory = nil
+                    showTextOnly = false
+                    showPinnedOnly = false
+                }
+
+                ForEach(availableCategories, id: \.name) { collection in
+                    chip(
+                        label: collection.name,
+                        count: collection.count,
+                        isActive: selectedCategory == collection.name
+                    ) {
+                        selectedKind = nil
+                        selectedCategory = selectedCategory == collection.name ? nil : collection.name
+                    }
+                }
+
+                ForEach(availableKinds, id: \.kind) { entry in
+                    chip(
+                        label: entry.kind.displayName,
+                        count: entry.count,
+                        isActive: selectedKind == entry.kind
+                    ) {
+                        selectedCategory = nil
+                        selectedKind = selectedKind == entry.kind ? nil : entry.kind
+                    }
+                }
+
+                iconChip("plus", isActive: false) {
+                    newCategoryName = ""
+                    categoryTarget = clips.first
+                }
+            }
+            .padding(.horizontal, 1)
+        }
+        .frame(height: 38)
+    }
+
+    private func iconChip(_ symbol: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isActive ? .black : .white.opacity(0.7))
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(isActive ? .white : .white.opacity(0.09)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var hasFilter: Bool {
+        selectedKind != nil || selectedCategory != nil || showPinnedOnly || showTextOnly
+    }
+
+    /// Chips carry their count, so you can see what is in a collection without
+    /// opening it. The active one is a solid white pill — the strongest
+    /// contrast available on a dark glass surface.
     private func chip(
         label: String,
         count: Int,
@@ -264,20 +312,20 @@ struct NotchView: View {
         Button {
             withAnimation(Theme.standardSpring) { action() }
         } label: {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 if let symbol {
-                    Image(systemName: symbol).font(.system(size: 9))
+                    Image(systemName: symbol).font(.system(size: 11))
                 }
                 Text(label)
-                    .font(.system(size: 11, weight: isActive ? .medium : .regular))
+                    .font(.system(size: 14, weight: isActive ? .semibold : .regular))
                 Text("\(count)")
-                    .font(.system(size: 9, weight: .medium).monospacedDigit())
-                    .opacity(0.6)
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .opacity(0.55)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .foregroundStyle(isActive ? .black : .white.opacity(0.65))
-            .background(Capsule().fill(isActive ? .white : .white.opacity(0.08)))
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .foregroundStyle(isActive ? .black : .white.opacity(0.72))
+            .background(Capsule().fill(isActive ? .white : .white.opacity(0.09)))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -293,12 +341,12 @@ struct NotchView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 16) {
                     ForEach(groupedByDay, id: \.label) { group in
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Text(group.label)
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.4))
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.55))
 
-                            HStack(spacing: 8) {
+                            HStack(spacing: 12) {
                                 ForEach(group.clips, id: \.id) { clip in
                                     NotchCard(
                                         clip: clip,
@@ -346,6 +394,8 @@ struct NotchView: View {
         clips.filter { clip in
             if let selectedKind, clip.kind != selectedKind.rawValue { return false }
             if let selectedCategory, clip.category != selectedCategory { return false }
+            if showPinnedOnly && !clip.isPinned { return false }
+            if showTextOnly && (clip.ocrText ?? "").isEmpty { return false }
 
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !query.isEmpty else { return true }

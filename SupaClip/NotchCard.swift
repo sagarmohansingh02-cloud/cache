@@ -3,13 +3,16 @@ import SwiftUI
 
 /// One card in the notch strip.
 ///
-/// Bigger and more visual than a list row: at a glance you should recognise the
-/// clip by its shape and colour, not by reading it.
+/// Portrait, and the preview is full-bleed: the picture *is* the card, with the
+/// title and metadata laid over a scrim at the bottom. That is the difference
+/// between scanning a shelf and reading a list — you should recognise a clip by
+/// its shape and colour before you read a word of it.
 struct NotchCard: View {
     let clip: Clip
     /// 0–9 for the first ten clips, which get a ⌃⌘n badge. nil after that.
     let shortcutIndex: Int?
     let isHovered: Bool
+    var isSelected: Bool = false
     let onSelect: () -> Void
     let onTogglePin: () -> Void
     let onPreview: () -> Void
@@ -23,36 +26,37 @@ struct NotchCard: View {
         return !text.isEmpty
     }
 
-    private static let side: CGFloat = 116
+    static let width: CGFloat = 168
+    static let height: CGFloat = 196
+    private static let radius: CGFloat = 14
 
     var body: some View {
         Button(action: onSelect) {
-            VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
                 preview
-                    .frame(width: Self.side, height: Self.side - 26)
+                    .frame(width: Self.width, height: Self.height)
                     .clipped()
 
-                footer
-                    .frame(width: Self.side, height: 26)
+                scrim
+                overlayText
             }
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.white.opacity(isHovered ? 0.12 : 0.06))
-            )
+            .frame(width: Self.width, height: Self.height)
+            .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(isHovered ? Theme.accent : .white.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? Theme.accent : .white.opacity(0.08),
+                        lineWidth: isSelected ? 2.5 : 1
+                    )
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(alignment: .topTrailing) { hoverActions }
             .overlay(alignment: .topLeading) { textBadge }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // Rises toward the pointer. Spring rather than a linear fade, so it
-        // settles with a little weight instead of arriving dead.
-        .scaleEffect(isHovered ? 1.045 : 1.0)
+        .scaleEffect(isHovered ? 1.035 : 1.0)
         .animation(Theme.cardSpring, value: isHovered)
+        .animation(Theme.cardSpring, value: isSelected)
         .onDrag { dragProvider() }
         .help(clip.sortableText.prefix(200).description)
     }
@@ -72,72 +76,114 @@ struct NotchCard: View {
             }
 
         case .color:
-            // A colour clip shows the colour — the one place the single-accent
-            // rule gives way, here as much as in the list.
-            ZStack {
-                Color(nsColor: ClipColorParser.color(from: clip.text) ?? .black)
-                Text(clip.text ?? "")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.75))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                    .padding(8)
-            }
+            Color(nsColor: ClipColorParser.color(from: clip.text) ?? .black)
 
         case .file:
             symbolTile("doc")
 
         default:
-            Text(clip.title ?? clip.text ?? "")
-                .font(.system(size: 11, design: kind == .code ? .monospaced : .default))
-                .foregroundStyle(.white.opacity(0.85))
-                .lineLimit(5)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(8)
-                .background(Color.white.opacity(0.03))
+            // Text kinds get their own words as the picture, large enough to
+            // recognise at a glance rather than read.
+            ZStack(alignment: .topLeading) {
+                Color.white.opacity(0.06)
+                Text(clip.text ?? "")
+                    .font(.system(size: 13, weight: .medium, design: kind == .code ? .monospaced : .default))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(6)
+                    .multilineTextAlignment(.leading)
+                    .padding(12)
+            }
         }
     }
 
     private func symbolTile(_ symbol: String) -> some View {
         ZStack {
-            Color.white.opacity(0.05)
+            Color.white.opacity(0.06)
             Image(systemName: symbol)
-                .font(.system(size: 24, weight: .light))
+                .font(.system(size: 30, weight: .light))
                 .foregroundStyle(.white.opacity(0.4))
         }
     }
 
-    // MARK: - Footer
-
-    private var footer: some View {
-        HStack(spacing: 4) {
-            if let icon = AppIconCache.icon(forBundleID: clip.sourceAppBundleID) {
-                Image(nsImage: icon).resizable().frame(width: 11, height: 11)
-            }
-
-            Text(ClipRow.relativeTime(clip.createdAt))
-                .font(.system(size: 9))
-                .foregroundStyle(.white.opacity(0.45))
-
-            Spacer(minLength: 0)
-
-            if let shortcutIndex {
-                // ⌃⌘n — reachable without leaving the home row, and shown so it
-                // can actually be learned.
-                Text("⌃⌘\(shortcutIndex)")
-                    .font(.system(size: 9, weight: .medium).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.55))
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(.white.opacity(0.10)))
-            }
-        }
-        .padding(.horizontal, 6)
-        .background(Color.black.opacity(0.35))
+    /// Darkens the bottom of the preview so white text stays legible over any
+    /// image. Without it a pale screenshot makes the title disappear.
+    private var scrim: some View {
+        LinearGradient(
+            colors: [.clear, .black.opacity(0.45), .black.opacity(0.82)],
+            startPoint: .center,
+            endPoint: .bottom
+        )
+        .frame(height: Self.height * 0.62)
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .allowsHitTesting(false)
     }
 
+    // MARK: - Overlaid text
+
+    private var overlayText: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(displayTitle)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
+                if let icon = AppIconCache.icon(forBundleID: clip.sourceAppBundleID) {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .frame(width: 18, height: 18)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                }
+
+                Text(ClipRow.relativeTime(clip.createdAt))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.65))
+
+                Spacer(minLength: 4)
+
+                if let shortcutIndex {
+                    Text("⌃⌘\(shortcutIndex)")
+                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.75))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(.black.opacity(0.45)))
+                }
+            }
+        }
+        .padding(10)
+        .frame(width: Self.width, alignment: .leading)
+    }
+
+    private var displayTitle: String {
+        if let title = clip.title, !title.isEmpty { return title }
+
+        switch kind {
+        case .image:
+            // A screenshot's first recognised line is a far better label than
+            // the word "Image".
+            if let ocr = clip.ocrText?
+                .split(separator: "\n")
+                .first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) {
+                return String(ocr)
+            }
+            return "Image"
+        case .file:
+            let paths = (clip.text ?? "").split(separator: "\n")
+            return paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", ")
+        case .color:
+            return clip.text ?? "Color"
+        default:
+            return clip.text ?? ""
+        }
+    }
+
+    // MARK: - Chrome
+
     private var hoverActions: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             if isHovered {
                 circleButton("eye", action: onPreview)
                     .help("Preview and read text")
@@ -145,12 +191,12 @@ struct NotchCard: View {
             if isHovered || clip.isPinned {
                 circleButton(
                     clip.isPinned ? "star.fill" : "star",
-                    tint: clip.isPinned ? Theme.accent : .white.opacity(0.7),
+                    tint: clip.isPinned ? Theme.accent : .white.opacity(0.85),
                     action: onTogglePin
                 )
             }
         }
-        .padding(4)
+        .padding(8)
     }
 
     /// Marks an image whose text has been recognised, so you can tell at a
@@ -159,24 +205,24 @@ struct NotchCard: View {
     private var textBadge: some View {
         if kind == .image && hasRecognizedText && !isHovered {
             Image(systemName: "textformat")
-                .font(.system(size: 8, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
-                .padding(3)
-                .background(Capsule().fill(.black.opacity(0.55)))
-                .padding(4)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(5)
+                .background(Circle().fill(.black.opacity(0.45)))
+                .padding(8)
         }
     }
 
     private func circleButton(
         _ symbol: String,
-        tint: Color = .white.opacity(0.7),
+        tint: Color = .white.opacity(0.85),
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 9))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(tint)
-                .padding(4)
+                .frame(width: 26, height: 26)
                 .background(Circle().fill(.black.opacity(0.55)))
                 .contentShape(Circle())
         }
