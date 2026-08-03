@@ -44,7 +44,7 @@ Requires **macOS 14 (Sonoma) or later**. Built and tested on macOS 26.
 
 ### Download
 
-Grab the latest **`Cache-1.0.0.dmg`** from
+Grab the latest **`Cache-1.0.1.dmg`** from
 [Releases](https://github.com/sagarmohansingh02-cloud/cache/releases), open it,
 and drag Cache onto Applications.
 

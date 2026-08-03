@@ -41,6 +41,12 @@ final class ClipStore {
         NSLog("SupaClip: filed \(pending.count) existing screenshot(s) into \(name)")
     }
 
+    /// True when the store already holds clips — used to tell an upgrade from a
+    /// fresh install.
+    func hasAnyClips() -> Bool {
+        ((try? context.fetchCount(FetchDescriptor<Clip>())) ?? 0) > 0
+    }
+
     // MARK: - Reads
 
     /// Newest clip, or nil on an empty store. Used for deduplication.

@@ -151,12 +151,30 @@ final class ScreenshotWatcher {
         }
     }
 
-    private func ingest(_ url: URL) {
+    /// Delays between retries of the Spotlight check, in seconds.
+    ///
+    /// Spotlight does not tag a file the instant it is written — measured here,
+    /// `kMDItemIsScreenCapture` was still null a second after the file appeared
+    /// and only became true several seconds later. Checking once and giving up
+    /// dropped real screenshots on the floor, and did it intermittently, which
+    /// is the worst kind of bug: it works whenever Spotlight happens to be quick.
+    private static let retryDelays: [TimeInterval] = [1.0, 2.0, 4.0]
+
+    private func ingest(_ url: URL, attempt: Int = 0) {
         guard settings.capturesScreenshots,
-              FileManager.default.fileExists(atPath: url.path),
-              Self.isScreenCapture(url),
-              let image = NSImage(contentsOf: url)
+              FileManager.default.fileExists(atPath: url.path)
         else { return }
+
+        if needsScreenCaptureProof && !Self.isScreenCapture(url) {
+            // Not tagged *yet*. Come back rather than discarding it.
+            guard attempt < Self.retryDelays.count else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.retryDelays[attempt]) { [weak self] in
+                MainActor.assumeIsolated { self?.ingest(url, attempt: attempt + 1) }
+            }
+            return
+        }
+
+        guard let image = NSImage(contentsOf: url) else { return }
 
         // The original stays where the user put it; we keep our own copy, so
         // deleting the Desktop file doesn't empty the clip.
@@ -171,6 +189,29 @@ final class ScreenshotWatcher {
             sourceAppBundleID: nil,
             category: Self.collectionName
         )
+    }
+
+    /// Whether a new image has to prove it is a screen capture.
+    ///
+    /// Only when the watched folder is one people keep other things in. If the
+    /// user has pointed macOS at a folder of its own — which most people who
+    /// move it do — then everything landing there *is* a screenshot, and
+    /// demanding Spotlight confirm it just adds a way to fail.
+    private var needsScreenCaptureProof: Bool {
+        guard let watchedDirectory else { return true }
+        return Self.isSharedFolder(watchedDirectory)
+    }
+
+    private static func isSharedFolder(_ directory: URL) -> Bool {
+        let fm = FileManager.default
+        var shared: [URL] = [URL(fileURLWithPath: NSHomeDirectory())]
+        for which in [FileManager.SearchPathDirectory.desktopDirectory,
+                      .downloadsDirectory,
+                      .documentDirectory,
+                      .picturesDirectory] {
+            if let url = fm.urls(for: which, in: .userDomainMask).first { shared.append(url) }
+        }
+        return shared.contains { $0.standardizedFileURL.path == directory.standardizedFileURL.path }
     }
 
     /// The auto-assigned collection every screenshot lands in.

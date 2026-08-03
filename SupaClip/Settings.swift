@@ -26,6 +26,37 @@ final class AppSettings {
         static let ignoredBundleIDs = "ignoredBundleIDs"
         static let ignoredKinds = "ignoredKinds"
         static let textExpansionEnabled = "textExpansionEnabled"
+        static let didMigrateScreenshotDefault = "didMigrateScreenshotDefault"
+    }
+
+    /// Screenshot capture used to default to ON. Turning the default off is
+    /// right for new installs — nobody should meet a Desktop permission prompt
+    /// before asking for the feature — but for someone already running with it
+    /// on, a silent switch-off just looks like the app broke.
+    ///
+    /// So: anyone who has never expressed a preference *and* already has a
+    /// history keeps the old behaviour. A genuinely new install gets the new
+    /// default. Runs once.
+    func migrateScreenshotDefaultIfNeeded(hasExistingHistory: Bool) {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Keys.didMigrateScreenshotDefault) else { return }
+        defaults.set(true, forKey: Keys.didMigrateScreenshotDefault)
+
+        // An explicit choice is never overridden.
+        //
+        // This must read the *persistent* domain, not `object(forKey:)`.
+        // `object(forKey:)` also consults the registration domain, so it
+        // returns the registered fallback rather than nil and makes it look as
+        // though every user has already chosen — which silently skipped the
+        // migration entirely.
+        let domain = UserDefaults.standard
+            .persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")
+        guard domain?[Keys.capturesScreenshots] == nil else { return }
+
+        if hasExistingHistory {
+            capturesScreenshots = true
+            NSLog("Cache: kept screenshot capture on for an existing install")
+        }
     }
 
     var sortOrder: SortOrder {

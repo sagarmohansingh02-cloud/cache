@@ -52,6 +52,11 @@ struct SupaClipApp: App {
         monitor.start()
 
         // Screenshots are filed even when they're never copied.
+        // Preserve screenshot capture for anyone upgrading — see AppSettings.
+        AppSettings.shared.migrateScreenshotDefaultIfNeeded(
+            hasExistingHistory: store.hasAnyClips()
+        )
+
         let screenshotWatcher = ScreenshotWatcher(store: store)
         self.screenshotWatcher = screenshotWatcher
         // Only watches if the user has asked for it — see AppSettings.
