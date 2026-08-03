@@ -15,11 +15,10 @@ struct NotchView: View {
     let monitor: ClipboardMonitor?
     let onDismiss: () -> Void
 
-    /// The panel has to grow to fit the detail card, and only the controller
-    /// owns the window, so it's told when the height requirement changes.
-    var onDetailChanged: ((Bool) -> Void)?
-
-    @State private var detailClip: Clip?
+    /// Asks the controller to show the detail card. It lives in its own window
+    /// so the strip never has to resize — resizing a SwiftUI-hosting window
+    /// aborts the process. See NotchController.showDetail.
+    var onPreview: ((Clip) -> Void)?
 
     @State private var searchText = ""
     @State private var selectedKind: ClipKind?
@@ -71,19 +70,6 @@ struct NotchView: View {
                 )
                 .strokeBorder(isTargetedForDrop ? Theme.accent : Color.white.opacity(0.08), lineWidth: 1)
             )
-
-            if let detailClip {
-                ClipDetailCard(
-                    clip: detailClip,
-                    onCopy: { paste(detailClip) },
-                    onCopyText: { text in copyPlainText(text) },
-                    onClose: { closeDetail() }
-                )
-                .frame(height: 240)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
 
             Spacer(minLength: 0).allowsHitTesting(false)
         }
@@ -356,20 +342,12 @@ struct NotchView: View {
     // MARK: - Detail
 
     private func openDetail(_ clip: Clip) {
-        withAnimation(Theme.standardSpring) { detailClip = clip }
-        onDetailChanged?(true)
-    }
-
-    private func closeDetail() {
-        withAnimation(Theme.standardSpring) { detailClip = nil }
-        onDetailChanged?(false)
+        onPreview?(clip)
     }
 
     /// Copy recognised text without touching the clip's own contents.
     private func copyPlainText(_ text: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        ClipPasteboard.writePlainText(text)
         monitor?.acknowledgeSelfCopy()
         onDismiss()
     }

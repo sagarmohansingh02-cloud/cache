@@ -20,6 +20,12 @@ final class NotchController {
     private var localMouseMonitor: Any?
 
     private var isDetailOpen = false
+    private var detailPanel: FloatingPanel?
+
+    /// Builds the detail card for a clip. Supplied by the app so the card can
+    /// reach the store and the monitor.
+    var detailBuilder: ((Clip, @escaping () -> Void) -> AnyView)?
+
     private var hotZone: HotZoneWindow?
     private var hotZoneScreen: NSScreen?
 
@@ -110,7 +116,13 @@ final class NotchController {
         if isShowing {
             // Close once the pointer leaves the panel — but only downward past
             // its bottom edge, so travelling along the menu bar doesn't dismiss it.
-            if let frame = panel?.frame, !frame.insetBy(dx: -8, dy: -8).contains(location) {
+            var region = panel?.frame ?? .zero
+            if isDetailOpen, let detail = detailPanel?.frame {
+                // Union, so moving from the strip down into the detail card
+                // doesn't read as leaving.
+                region = region.union(detail)
+            }
+            if !region.insetBy(dx: -8, dy: -8).contains(location) {
                 hide()
             }
             return
@@ -135,7 +147,7 @@ final class NotchController {
         currentScreen = target
 
         panel.contentView = FirstMouseHostingView(rootView: contentBuilder { [weak self] in self?.hide() })
-        isDetailOpen = false
+        hideDetail()
         panel.setFrame(NotchGeometry.panelFrame(on: target), display: false)
 
         // The strip would sit on top of the pill, so get the pill out of the way
@@ -149,30 +161,58 @@ final class NotchController {
 
     /// Grow or shrink the strip so the detail card has room. Animated, because
     /// the panel resizing is the transition the user actually sees.
-    func setDetailOpen(_ open: Bool) {
-        guard isDetailOpen != open, let panel, let screen = currentScreen else { return }
-        isDetailOpen = open
+    /// Show the detail card in its **own window** below the strip.
+    ///
+    /// It used to be rendered inside the strip, which meant growing the panel to
+    /// make room. Resizing a window that hosts an `NSHostingView` makes AppKit
+    /// throw from `_postWindowNeedsUpdateConstraints` and abort the process —
+    /// first via safe-area invalidation, then, once that was disabled, via
+    /// `geometryInWindowDidChange`. Two different SwiftUI properties, one cause:
+    /// the resize itself. A second window sized to its content never resizes,
+    /// so the whole failure mode is gone rather than patched.
+    func showDetail(for clip: Clip) {
+        guard let builder = detailBuilder, let screen = currentScreen else { return }
 
-        let size = open ? NotchGeometry.expandedPanelSize : NotchGeometry.panelSize
-        let frame = NotchGeometry.panelFrame(on: screen, size: size)
+        let panel = detailPanel ?? makeDetailPanel()
+        detailPanel = panel
 
-        // This *must* be deferred. It is called from a SwiftUI button action,
-        // which runs inside AppKit's display cycle — and resizing an NSWindow
-        // during layout makes `-[NSView setFrameSize:]` throw an exception that
-        // aborts the process. Opening a preview crashed the app for exactly
-        // this reason. Hopping to the next runloop turn puts the resize safely
-        // outside the cycle.
-        DispatchQueue.main.async {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.22
-                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                panel.animator().setFrame(frame, display: true)
-            }
-        }
+        panel.contentView = FirstMouseHostingView(
+            rootView: builder(clip) { [weak self] in self?.hideDetail() }
+        )
+        panel.setFrame(NotchGeometry.detailFrame(on: screen), display: false)
+        panel.orderFrontRegardless()
+        panel.makeKey()
+        isDetailOpen = true
+    }
+
+    func hideDetail() {
+        detailPanel?.orderOut(nil)
+        isDetailOpen = false
+    }
+
+    private func makeDetailPanel() -> FloatingPanel {
+        let panel = FloatingPanel(
+            contentRect: NSRect(origin: .zero, size: NotchGeometry.detailSize),
+            styleMask: [.nonactivatingPanel, .borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        panel.isFloatingPanel = true
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = true
+        panel.hidesOnDeactivate = false
+        panel.animationBehavior = .none
+        panel.acceptsMouseMovedEvents = true
+
+        return panel
     }
 
     func hide() {
-        isDetailOpen = false
+        hideDetail()
         panel?.orderOut(nil)
         isShowing = false
         updateTray()

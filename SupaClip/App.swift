@@ -76,7 +76,28 @@ struct SupaClipApp: App {
                 NotchView(
                     monitor: monitor,
                     onDismiss: dismiss,
-                    onDetailChanged: { open in notchControllerBox.value?.setDetailOpen(open) }
+                    onPreview: { clip in notchControllerBox.value?.showDetail(for: clip) }
+                )
+                .modelContainer(container)
+            )
+        }
+        // The detail card renders in its own window, built here so it can reach
+        // the monitor for self-copy acknowledgement.
+        notchController.detailBuilder = { clip, dismiss in
+            AnyView(
+                ClipDetailCard(
+                    clip: clip,
+                    onCopy: {
+                        ClipPasteboard.write(clip)
+                        monitor.acknowledgeSelfCopy()
+                        dismiss()
+                    },
+                    onCopyText: { text in
+                        ClipPasteboard.writePlainText(text)
+                        monitor.acknowledgeSelfCopy()
+                        dismiss()
+                    },
+                    onClose: dismiss
                 )
                 .modelContainer(container)
             )

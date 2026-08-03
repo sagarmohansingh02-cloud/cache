@@ -17,8 +17,19 @@ enum NotchGeometry {
 
     static let panelSize = CGSize(width: 720, height: 300)
 
-    /// Taller variant, used while the detail card is open below the strip.
-    static let expandedPanelSize = CGSize(width: 720, height: 560)
+    /// The detail card is its own window, sized to its content, sitting just
+    /// below the strip. It is never resized — see NotchController.showDetail.
+    static let detailSize = CGSize(width: 720, height: 260)
+
+    static func detailFrame(on screen: NSScreen) -> CGRect {
+        let strip = panelFrame(on: screen)
+        return CGRect(
+            x: strip.minX,
+            y: (strip.minY - 8 - detailSize.height).rounded(),
+            width: detailSize.width,
+            height: detailSize.height
+        )
+    }
     static let dotSize = CGSize(width: 14, height: 14)
 
     /// Wide enough for the expanded pill's thumbnails.
