@@ -15,11 +15,11 @@ enum NotchGeometry {
     /// Width of the hot zone on a screen with no notch, centred at the top.
     static let virtualNotchWidth: CGFloat = 180
 
-    static let panelSize = CGSize(width: 720, height: 300)
+    static let panelSize = CGSize(width: 980, height: 430)
 
     /// The detail card is its own window, sized to its content, sitting just
     /// below the strip. It is never resized — see NotchController.showDetail.
-    static let detailSize = CGSize(width: 720, height: 260)
+    static let detailSize = CGSize(width: 980, height: 320)
 
     static func detailFrame(on screen: NSScreen) -> CGRect {
         let strip = panelFrame(on: screen)

@@ -32,6 +32,11 @@ struct ContentView: View {
 
     @Environment(\.modelContext) private var modelContext
 
+    /// Compact is the menu bar dropdown; library is the big grid window the
+    /// hotkey opens. Same data, deliberately different shapes.
+    enum Layout { case compact, library }
+    var layout: Layout = .compact
+
     let monitor: ClipboardMonitor?
 
     /// How this view closes. The hotkey panel passes its own dismissal; the
@@ -78,9 +83,18 @@ struct ContentView: View {
             Divider()
             footer
         }
-        .frame(width: Theme.panelWidth, height: Theme.panelHeight)
-        .background(VisualEffectView())
-        .clipShape(RoundedRectangle(cornerRadius: Theme.windowCornerRadius, style: .continuous))
+        .frame(
+            width: layout == .library ? Theme.libraryWidth : Theme.panelWidth,
+            height: layout == .library ? Theme.libraryHeight : Theme.panelHeight
+        )
+        .background(LiquidGlass(cornerRadius: layout == .library ? 20 : Theme.windowCornerRadius))
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: layout == .library ? 20 : Theme.windowCornerRadius,
+                style: .continuous
+            )
+        )
+        .preferredColorScheme(.dark)
         .onAppear {
             // The search field is focused the instant the panel opens. Always.
             isSearchFocused = true
@@ -135,7 +149,9 @@ struct ContentView: View {
 
     @ViewBuilder
     private var header: some View {
-        if selectedIDs.isEmpty {
+        if layout == .library {
+            libraryHeader
+        } else if selectedIDs.isEmpty {
             FilterBar(
                 searchText: $searchText,
                 selectedKind: $selectedKind,
@@ -157,6 +173,125 @@ struct ContentView: View {
             .padding(.horizontal, Theme.windowPadding)
             .padding(.vertical, 8)
         }
+    }
+
+    /// The Library header: a large search line, round actions on the right, and
+    /// a chip row beneath. Bulk actions take over the chip row when a selection
+    /// is active, so the layout never shifts.
+    private var libraryHeader: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
+
+                TextField("Search", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 17))
+                    .foregroundStyle(.white)
+                    .focused($isSearchFocused)
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                        isSearchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer(minLength: 8)
+
+                roundAction("gearshape", help: "Settings") { isShowingSettings = true }
+                roundAction("xmark", help: "Close") { dismissPanel() }
+            }
+
+            if selectedIDs.isEmpty {
+                libraryChips
+            } else {
+                BulkActionBar(
+                    selectedCount: selectedIDs.count,
+                    onCopy: bulkCopy,
+                    onSelectSimilar: selectSimilar,
+                    onDelete: bulkDelete,
+                    onClear: { selectedIDs.removeAll() }
+                )
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, 14)
+    }
+
+    private var libraryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                libraryChip("History", count: pinnedClips.count + recentClips.count, isActive: !hasActiveFilter) {
+                    selectedKind = nil
+                    selectedCategory = nil
+                    selectedAppBundleID = nil
+                    searchText = ""
+                }
+
+                ForEach(availableCategories, id: \.self) { category in
+                    let count = (pinnedClips + recentClips).filter { $0.category == category }.count
+                    libraryChip(category, count: count, isActive: selectedCategory == category) {
+                        selectedKind = nil
+                        selectedCategory = selectedCategory == category ? nil : category
+                    }
+                }
+
+                ForEach(availableKinds, id: \.self) { kind in
+                    let count = (pinnedClips + recentClips).filter { $0.kind == kind.rawValue }.count
+                    libraryChip(kind.displayName, count: count, isActive: selectedKind == kind) {
+                        selectedCategory = nil
+                        selectedKind = selectedKind == kind ? nil : kind
+                    }
+                }
+            }
+            .padding(.horizontal, 1)
+        }
+        .frame(height: 36)
+    }
+
+    private func libraryChip(
+        _ label: String,
+        count: Int,
+        isActive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            withAnimation(Theme.standardSpring) { action() }
+        } label: {
+            HStack(spacing: 6) {
+                Text(label).font(.system(size: 13, weight: isActive ? .semibold : .regular))
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .opacity(0.55)
+            }
+            .padding(.horizontal, 13)
+            .frame(height: 34)
+            .foregroundStyle(isActive ? .black : .white.opacity(0.72))
+            .background(Capsule().fill(isActive ? .white : .white.opacity(0.09)))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func roundAction(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.75))
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(.white.opacity(0.09)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     // MARK: - Filtering & ordering
@@ -222,13 +357,17 @@ struct ContentView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 Group {
-                    switch settings.viewMode {
-                    case .list:  listLayout
-                    case .grid:  gridLayout
-                    case .board: boardLayout
+                    if layout == .library {
+                        gridLayout
+                    } else {
+                        switch settings.viewMode {
+                        case .list:  listLayout
+                        case .grid:  gridLayout
+                        case .board: boardLayout
+                        }
                     }
                 }
-                .padding(Theme.windowPadding)
+                .padding(layout == .library ? 20 : Theme.windowPadding)
             }
             .animation(Theme.standardSpring, value: visibleClips.count)
             .onChange(of: navigator.selectedIndex) { _, _ in
@@ -267,8 +406,8 @@ struct ContentView: View {
 
     private var gridLayout: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 150), spacing: Theme.rowSpacing)],
-            spacing: Theme.rowSpacing
+            columns: [GridItem(.adaptive(minimum: ClipCard.minWidth), spacing: 14)],
+            spacing: 14
         ) {
             ForEach(Array(visibleClips.enumerated()), id: \.element.id) { index, clip in
                 card(for: clip, at: index)

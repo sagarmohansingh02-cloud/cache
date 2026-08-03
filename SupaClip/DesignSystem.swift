@@ -39,10 +39,23 @@ enum Theme {
 
     // Motion
     static let standardSpring = Animation.spring(response: 0.3, dampingFraction: 0.8)
+
+    /// The hover lift on cards and pills — quick, with a little bounce left in.
+    static let cardSpring = Animation.spring(response: 0.18, dampingFraction: 0.72)
+
+    /// Glass surfaces arriving and leaving. Tuned snappy on purpose: the notch
+    /// opens on hover, so any perceptible wind-up reads as lag rather than
+    /// polish. High damping keeps it from overshooting at this speed.
+    static let surfaceSpring = Animation.spring(response: 0.22, dampingFraction: 0.86)
     static let hoverFade = Animation.easeOut(duration: 0.12)
 
     static let panelWidth: CGFloat = 360
     static let panelHeight: CGFloat = 420
+
+    /// The Library window. Wide enough for five columns of tiles, which is what
+    /// turns the history from a list you read into a grid you scan.
+    static let libraryWidth: CGFloat = 1080
+    static let libraryHeight: CGFloat = 760
 }
 
 /// SwiftUI has no native equivalent of `NSVisualEffectView`, so we bridge it.

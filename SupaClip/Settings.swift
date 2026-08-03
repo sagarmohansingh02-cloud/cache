@@ -55,11 +55,23 @@ final class AppSettings {
     }
 
     /// Watch the system screenshot folder and file new screenshots as clips.
-    /// On by default, but this one ingests things the user never copied, so it
-    /// gets an explicit switch.
+    ///
+    /// **Off by default, deliberately.** The screenshot folder usually lives in
+    /// Desktop, which macOS protects — so switching this on is what triggers the
+    /// "would like to access files in your Desktop folder" prompt. Defaulting it
+    /// on meant every new user got that prompt on first launch, before they had
+    /// asked for anything, which is the fastest way to make someone distrust an
+    /// app. Now the prompt only appears once someone has deliberately turned
+    /// screenshot capture on, where it reads as an obvious consequence.
     var capturesScreenshots: Bool {
-        didSet { UserDefaults.standard.set(capturesScreenshots, forKey: Keys.capturesScreenshots) }
+        didSet {
+            UserDefaults.standard.set(capturesScreenshots, forKey: Keys.capturesScreenshots)
+            onCapturesScreenshotsChanged?()
+        }
     }
+
+    /// Lets the watcher start and stop with the toggle rather than only at launch.
+    @ObservationIgnored var onCapturesScreenshotsChanged: (() -> Void)?
 
     /// When paused the poll timer keeps running but nothing is recorded — the
     /// timer stays alive so we don't miss the changeCount baseline on resume.
@@ -82,7 +94,7 @@ final class AppSettings {
         let defaults = UserDefaults.standard
         defaults.register(defaults: [
             Keys.historyLimit: Self.maxHistoryLimit,
-            Keys.capturesScreenshots: true,
+            Keys.capturesScreenshots: false,
         ])
 
         capturesScreenshots = defaults.bool(forKey: Keys.capturesScreenshots)

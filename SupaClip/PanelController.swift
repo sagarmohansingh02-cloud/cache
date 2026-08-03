@@ -48,19 +48,38 @@ final class PanelController {
         // Combined with `.nonactivatingPanel` this means the app you copied
         // from keeps its focus — so ⌘V still goes where you expect after the
         // panel closes. This is also the groundwork auto-paste would need.
+        // Show a Dock icon while the Library is open.
+        //
+        // The app is `LSUIElement`, so normally it has no Dock presence at all —
+        // which is right for something that lives in the notch, but means a new
+        // user has no idea it is running or where it went. Switching the
+        // activation policy to `.regular` puts it in the Dock and the app
+        // switcher for as long as the Library window is up, then drops back to
+        // `.accessory` when it closes. That gives the app a face when you are
+        // actually working in it, without leaving an icon parked in your Dock
+        // the rest of the time.
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
         panel.orderFrontRegardless()
         panel.makeKey()
     }
 
     func hide() {
         panel?.orderOut(nil)
+        // Back to a menu bar utility. Deferred so the window is really gone
+        // before the policy flips — changing it mid-teardown makes the Dock
+        // icon linger.
+        DispatchQueue.main.async {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     // MARK: - Construction
 
     private func makePanel() -> FloatingPanel {
         let panel = FloatingPanel(
-            contentRect: NSRect(x: 0, y: 0, width: Theme.panelWidth, height: Theme.panelHeight),
+            contentRect: NSRect(x: 0, y: 0, width: Theme.libraryWidth, height: Theme.libraryHeight),
             // `.nonactivatingPanel` is the important one: the panel accepts key
             // input without making SupaClip the active application.
             styleMask: [.nonactivatingPanel, .borderless],
@@ -112,7 +131,7 @@ final class PanelController {
 
         let originX = visible.midX - size.width / 2
         // AppKit's y axis grows upward from the bottom of the screen.
-        let originY = visible.maxY - (visible.height * 0.22) - size.height
+        let originY = visible.midY - size.height / 2
 
         panel.setFrameOrigin(NSPoint(x: originX.rounded(), y: originY.rounded()))
     }

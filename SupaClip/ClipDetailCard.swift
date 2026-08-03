@@ -11,11 +11,24 @@ struct ClipDetailCard: View {
     let onCopyText: (String) -> Void
     let onClose: () -> Void
 
+    /// Persist an edit back onto the clip. Optional so the card still works
+    /// anywhere that only wants to read.
+    var onSaveText: ((String) -> Void)?
+
+    @State private var isEditing = false
+    @State private var draft = ""
+
     private var kind: ClipKind { ClipKind(rawValue: clip.kind) ?? .text }
 
     private var recognizedText: String? {
         guard let text = clip.ocrText, !text.isEmpty else { return nil }
         return text
+    }
+
+    /// What the editor works on: an image's recognised text, or the clip's own
+    /// text for everything else.
+    private var editableText: String? {
+        kind == .image ? recognizedText : clip.text
     }
 
     var body: some View {
@@ -24,15 +37,12 @@ struct ClipDetailCard: View {
             Divider().overlay(.white.opacity(0.08))
             content
         }
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Theme.notchSurface)
-        )
+        .background(LiquidGlass(cornerRadius: 18, style: .regular))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .preferredColorScheme(.dark)
     }
 
@@ -56,33 +66,11 @@ struct ClipDetailCard: View {
 
             Spacer(minLength: 8)
 
-            // The reference surfaces OCR as a first-class action here rather
-            // than burying it — "Aa Copy text".
-            if let recognizedText {
-                Button {
-                    onCopyText(recognizedText)
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "textformat").font(.system(size: 10))
-                        Text("Copy text").font(.system(size: 11))
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .foregroundStyle(.white.opacity(0.85))
-                    .background(Capsule().fill(.white.opacity(0.10)))
-                }
-                .buttonStyle(.plain)
+            if isEditing {
+                editingActions
+            } else {
+                readingActions
             }
-
-            Button(action: onCopy) {
-                Text("Copy")
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .foregroundStyle(.black)
-                    .background(Capsule().fill(.white))
-            }
-            .buttonStyle(.plain)
 
             Button(action: onClose) {
                 Image(systemName: "xmark")
@@ -93,6 +81,99 @@ struct ClipDetailCard: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+    }
+
+    @ViewBuilder
+    private var readingActions: some View {
+        // A screenshot of a whole window recognises the whole window. Editing is
+        // how you keep the two lines you actually wanted.
+        if editableText != nil {
+            pillButton("Edit", symbol: "pencil") {
+                draft = editableText ?? ""
+                withAnimation(Theme.hoverFade) { isEditing = true }
+            }
+        }
+
+        if let recognizedText {
+            pillButton("Copy text", symbol: "textformat") { onCopyText(recognizedText) }
+        }
+
+        Button(action: onCopy) {
+            Text("Copy")
+                .font(.system(size: 11, weight: .medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .foregroundStyle(.black)
+                .background(Capsule().fill(.white))
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var editingActions: some View {
+        pillButton("Cancel", symbol: nil) {
+            withAnimation(Theme.hoverFade) { isEditing = false }
+        }
+
+        // Saving is optional on purpose: usually you want to trim the text,
+        // paste it, and leave the original clip alone.
+        if onSaveText != nil {
+            pillButton("Save", symbol: "checkmark") {
+                onSaveText?(draft)
+                withAnimation(Theme.hoverFade) { isEditing = false }
+            }
+        }
+
+        Button {
+            onCopyText(draft)
+        } label: {
+            Text("Copy edited")
+                .font(.system(size: 11, weight: .medium))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .foregroundStyle(.black)
+                .background(Capsule().fill(.white))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pillButton(_ title: String, symbol: String?, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if let symbol {
+                    Image(systemName: symbol).font(.system(size: 10))
+                }
+                Text(title).font(.system(size: 11))
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .foregroundStyle(.white.opacity(0.85))
+            .background(Capsule().fill(.white.opacity(0.10)))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The editor itself, shared by image and text clips.
+    private var textEditor: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextEditor(text: $draft)
+                .font(.system(size: 11))
+                .foregroundStyle(.white.opacity(0.9))
+                .scrollContentBackground(.hidden)
+                .padding(6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(.white.opacity(0.06))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Theme.accent.opacity(0.5), lineWidth: 1)
+                )
+
+            Text("Trim this down, then Copy edited. Save keeps the change on the clip.")
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.35))
+        }
     }
 
     /// Size and dimensions, matching the reference's `992 × 1200 · 1.6 MB`.
@@ -130,13 +211,17 @@ struct ClipDetailCard: View {
             colorContent
 
         default:
-            ScrollView {
-                Text(clip.text ?? "")
-                    .font(.system(size: 12, design: kind == .code ? .monospaced : .default))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
+            if isEditing {
+                textEditor.padding(12)
+            } else {
+                ScrollView {
+                    Text(clip.text ?? "")
+                        .font(.system(size: 12, design: kind == .code ? .monospaced : .default))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                }
             }
         }
     }
@@ -161,11 +246,13 @@ struct ClipDetailCard: View {
             Divider().overlay(.white.opacity(0.08))
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("RECOGNIZED TEXT")
+                Text(isEditing ? "EDITING RECOGNIZED TEXT" : "RECOGNIZED TEXT")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .foregroundStyle(isEditing ? Theme.accent : .white.opacity(0.4))
 
-                if let recognizedText {
+                if isEditing {
+                    textEditor
+                } else if let recognizedText {
                     ScrollView {
                         Text(recognizedText)
                             .font(.system(size: 11))

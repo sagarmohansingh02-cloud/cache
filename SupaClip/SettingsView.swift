@@ -36,6 +36,8 @@ struct SettingsView: View {
                     rulesSection
                     Divider()
                     historySection
+                    Divider()
+                    privacySection
                 }
                 .padding(16)
             }
@@ -80,6 +82,28 @@ struct SettingsView: View {
                 detail: "New screenshots are added automatically, even if you never copy them.",
                 isOn: $settings.capturesScreenshots
             )
+
+            // Show which folder is actually being watched. People move this, and
+            // an app that silently watches the wrong place looks broken rather
+            // than misconfigured.
+            if settings.capturesScreenshots {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    Text(ScreenshotWatcher.screenshotDirectory().path
+                            .replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .padding(.leading, 2)
+
+                Text("Detected from your macOS screenshot location. Move it and Cache follows.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -158,6 +182,39 @@ struct SettingsView: View {
             } message: {
                 Text("This removes your entire history, including pinned clips and saved images. It can't be undone.")
             }
+        }
+    }
+
+    /// Stated plainly, in the app rather than only in a file on GitHub. A
+    /// clipboard manager sees everything you copy, so the burden is on it to say
+    /// what it does with that.
+    private var privacySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Privacy")
+                .font(.system(size: 13, weight: .medium))
+
+            privacyLine("lock.fill", "Passwords are never saved. Anything a password manager marks as concealed is skipped before it is read.")
+            privacyLine("externaldrive.fill", "Everything stays on this Mac. Clips live in Application Support; images live beside them.")
+            privacyLine("wifi.slash", "No network access. Cache makes no requests, has no account, and sends no analytics.")
+            privacyLine("keyboard", "No keystroke monitoring. History comes from the system pasteboard, not from watching you type.")
+
+            Text("Clearing history deletes it from disk. Uninstalling removes the app; delete the Application Support folder to remove the data.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+        }
+    }
+
+    private func privacyLine(_ symbol: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 10))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 14)
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
