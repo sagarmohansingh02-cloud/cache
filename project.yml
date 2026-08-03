@@ -52,7 +52,14 @@ targets:
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: NO
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "-"
+        # macOS ties a privacy grant to the app's code signature. Ad-hoc
+        # signing ("-") produces a fresh signature on every build, so the system
+        # sees a different app each time and re-asks for permission it already
+        # granted. Set CACHE_SIGN_IDENTITY to a stable identity — a free
+        # self-signed code-signing certificate is enough — and the grant sticks
+        # across rebuilds. Falls back to ad-hoc so a plain `xcodegen && xcodebuild`
+        # still works with no setup.
+        CODE_SIGN_IDENTITY: "$(CACHE_SIGN_IDENTITY:default=-)"
         DEVELOPMENT_TEAM: ""
         GENERATE_INFOPLIST_FILE: NO
         COMBINE_HIDPI_IMAGES: YES

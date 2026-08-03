@@ -54,7 +54,11 @@ struct SupaClipApp: App {
         // Screenshots are filed even when they're never copied.
         let screenshotWatcher = ScreenshotWatcher(store: store)
         self.screenshotWatcher = screenshotWatcher
-        screenshotWatcher.start()
+        // Only watches if the user has asked for it — see AppSettings.
+        screenshotWatcher.syncWithSettings()
+        AppSettings.shared.onCapturesScreenshotsChanged = { [weak screenshotWatcher] in
+            screenshotWatcher?.syncWithSettings()
+        }
 
         // The hotkey window. It gets its own `ContentView` — same list, but it
         // knows how to close itself, which the menu bar window can't do.

@@ -30,8 +30,20 @@ final class ScreenshotWatcher {
 
     // MARK: - Lifecycle
 
+    /// Start or stop to match the setting. Called at launch and whenever the
+    /// toggle changes.
+    func syncWithSettings() {
+        if settings.capturesScreenshots { start() } else { stop() }
+    }
+
     func start() {
         guard source == nil else { return }
+
+        // Opening a descriptor on the screenshot folder is itself what triggers
+        // the Desktop privacy prompt, so this must not run until the feature is
+        // switched on. Checking only at ingest time would be too late — the
+        // prompt would already have appeared.
+        guard settings.capturesScreenshots else { return }
 
         let directory = Self.screenshotDirectory()
         knownFiles = Self.imageFilenames(in: directory)
