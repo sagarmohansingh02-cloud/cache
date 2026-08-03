@@ -31,6 +31,7 @@ struct NotchView: View {
     @State private var newCategoryName = ""
 
     @FocusState private var isSearchFocused: Bool
+    @State private var isHoveringQuit = false
 
     @Bindable private var settings = AppSettings.shared
 
@@ -190,6 +191,11 @@ struct NotchView: View {
             // layout priority lets the button claim its size first.
             .layoutPriority(-1)
 
+            quitButton
+
+            // Visual separation so quitting is never a near-miss of "close".
+            Divider().frame(height: 14).overlay(.white.opacity(0.15))
+
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10))
@@ -200,8 +206,36 @@ struct NotchView: View {
             }
             .buttonStyle(.plain)
             .fixedSize()
-            .help("Close")
+            .help("Close (Esc)")
         }
+    }
+
+    /// Quitting from the notch, since the strip is the surface most people
+    /// actually use and the only other Quit is buried in the menu bar panel.
+    ///
+    /// A plain button rather than a menu: menus inside a non-activating,
+    /// borderless panel are unreliable, and this needs to work every time.
+    /// It reads red on hover so it can't be mistaken for the close button, and
+    /// it sits behind a divider so a near-miss lands on nothing.
+    private var quitButton: some View {
+        Button {
+            NSApplication.shared.terminate(nil)
+        } label: {
+            Image(systemName: "power")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(isHoveringQuit ? Color.red : .white.opacity(0.45))
+                .frame(width: 22, height: 22)
+                .background(
+                    Circle().fill(isHoveringQuit ? Color.red.opacity(0.15) : .clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .onHover { hovering in
+            withAnimation(Theme.hoverFade) { isHoveringQuit = hovering }
+        }
+        .help("Quit SupaClip — clipboard capture stops until you open it again")
     }
 
     private var hasFilter: Bool { selectedKind != nil || selectedCategory != nil }
