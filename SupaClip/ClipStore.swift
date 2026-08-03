@@ -198,12 +198,21 @@ final class ClipStore {
     }
 
     /// Wipe everything, pinned clips included, and empty the Clips folder.
+    ///
+    /// Deliberately deletes row by row rather than with
+    /// `context.delete(model: Clip.self)`. That batch form operates on the store
+    /// underneath the context, so the objects the context already has registered
+    /// — which is exactly what `@Query` is showing — are never told they died.
+    /// The database emptied while the list carried on displaying the old clips,
+    /// which is why Clear All looked like it did nothing. Worse, the tray went on
+    /// holding deleted models.
     func clearAll() {
-        do {
-            try context.delete(model: Clip.self)
-        } catch {
-            NSLog("SupaClip: clear all failed — \(error.localizedDescription)")
-            return
+        // The shelf points at rows that are about to stop existing.
+        CopyTray.shared.clear()
+
+        let all = (try? context.fetch(FetchDescriptor<Clip>())) ?? []
+        for clip in all {
+            context.delete(clip)
         }
 
         // Remove every file rather than walking rows we've already deleted.
@@ -217,7 +226,12 @@ final class ClipStore {
             }
         }
 
+        // Thumbnails are cached in memory by filename; without this the list
+        // would still render pictures whose files are gone.
+        ThumbnailCache.clear()
+
         save()
+        NSLog("SupaClip: cleared \(all.count) clip(s)")
     }
 
     // MARK: - Pruning

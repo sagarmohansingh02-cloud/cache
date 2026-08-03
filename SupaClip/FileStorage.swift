@@ -219,4 +219,9 @@ enum ThumbnailCache {
         cache.setObject(image, forKey: filename as NSString)
         return image
     }
+
+    /// Drop everything — used when the files behind the cache are deleted.
+    static func clear() {
+        cache.removeAllObjects()
+    }
 }
