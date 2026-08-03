@@ -163,7 +163,7 @@ final class NotchController {
         isShowing = true
 
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.18
+            context.duration = 0.10
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
         }
@@ -242,7 +242,7 @@ final class NotchController {
         // Fade out rather than vanish. Faster than the entrance — dismissals
         // should feel immediate even when they're animated.
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.13
+            context.duration = 0.09
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in

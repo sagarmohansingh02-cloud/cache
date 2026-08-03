@@ -40,12 +40,13 @@ enum Theme {
     // Motion
     static let standardSpring = Animation.spring(response: 0.3, dampingFraction: 0.8)
 
-    /// Slightly quicker and springier, for the hover lift on cards and pills.
-    static let cardSpring = Animation.spring(response: 0.26, dampingFraction: 0.7)
+    /// The hover lift on cards and pills — quick, with a little bounce left in.
+    static let cardSpring = Animation.spring(response: 0.18, dampingFraction: 0.72)
 
-    /// Glass surfaces arriving and leaving — a touch slower so the material
-    /// reads as settling rather than snapping.
-    static let surfaceSpring = Animation.spring(response: 0.38, dampingFraction: 0.82)
+    /// Glass surfaces arriving and leaving. Tuned snappy on purpose: the notch
+    /// opens on hover, so any perceptible wind-up reads as lag rather than
+    /// polish. High damping keeps it from overshooting at this speed.
+    static let surfaceSpring = Animation.spring(response: 0.22, dampingFraction: 0.86)
     static let hoverFade = Animation.easeOut(duration: 0.12)
 
     static let panelWidth: CGFloat = 360

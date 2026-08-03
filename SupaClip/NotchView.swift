@@ -81,9 +81,9 @@ struct NotchView: View {
         // Drops out from behind the notch. This is done on the *content*, not
         // the window: animating an NSWindow's frame while it hosts SwiftUI
         // throws inside AppKit's layout pass and aborts the process.
-        .offset(y: hasAppeared ? 0 : -26)
+        .offset(y: hasAppeared ? 0 : -16)
         .opacity(hasAppeared ? 1 : 0)
-        .scaleEffect(hasAppeared ? 1 : 0.97, anchor: .top)
+        .scaleEffect(hasAppeared ? 1 : 0.98, anchor: .top)
         .onAppear {
             withAnimation(Theme.surfaceSpring) { hasAppeared = true }
             isSearchFocused = true
