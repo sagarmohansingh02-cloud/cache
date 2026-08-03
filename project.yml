@@ -1,4 +1,4 @@
-name: SupaClip
+name: Cache
 
 options:
   bundleIdPrefix: com.sagarmohansingh
@@ -13,7 +13,7 @@ packages:
     from: "2.0.0"
 
 targets:
-  SupaClip:
+  Cache:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
@@ -29,8 +29,8 @@ targets:
       properties:
         # Menu bar only — no Dock icon, no main window on launch.
         LSUIElement: true
-        CFBundleName: SupaClip
-        CFBundleDisplayName: SupaClip
+        CFBundleName: Cache
+        CFBundleDisplayName: Cache
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         LSMinimumSystemVersion: "14.0"
@@ -59,10 +59,10 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
 
 schemes:
-  SupaClip:
+  Cache:
     build:
       targets:
-        SupaClip: all
+        Cache: all
     run:
       config: Debug
     archive:

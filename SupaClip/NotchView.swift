@@ -219,7 +219,7 @@ struct NotchView: View {
         .onHover { hovering in
             withAnimation(Theme.hoverFade) { isHoveringQuit = hovering }
         }
-        .help("Quit SupaClip — capture stops until you open it again")
+        .help("Quit Cache — capture stops until you open it again")
     }
 
     private var closeButton: some View {

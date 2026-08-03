@@ -34,7 +34,7 @@ struct SupaClipApp: App {
         } catch {
             // If the store can't be opened there is no app — capture would have
             // nowhere to go. Failing loudly beats silently dropping every clip.
-            fatalError("SupaClip: could not open the clip store — \(error)")
+            fatalError("Cache: could not open the clip store — \(error)")
         }
         self.container = container
 
@@ -122,6 +122,7 @@ struct SupaClipApp: App {
         }
     }
 
+
     /// `~/Library/Application Support/<BundleID>/SupaClip.store`, alongside the
     /// `Clips/` folder. One definition of that path lives in `FileStorage`.
     private static func storeURL() -> URL {
@@ -129,7 +130,7 @@ struct SupaClipApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra("SupaClip", systemImage: "doc.on.clipboard") {
+        MenuBarExtra("Cache", systemImage: "doc.on.clipboard") {
             ContentView(monitor: monitor)
                 .modelContainer(container)
         }
