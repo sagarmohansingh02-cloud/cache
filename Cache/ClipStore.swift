@@ -38,7 +38,7 @@ final class ClipStore {
             clip.category = name
         }
         save()
-        NSLog("SupaClip: filed \(pending.count) existing screenshot(s) into \(name)")
+        NSLog("Cache: filed \(pending.count) existing screenshot(s) into \(name)")
     }
 
     /// True when the store already holds clips — used to tell an upgrade from a
@@ -103,7 +103,7 @@ final class ClipStore {
         do {
             filenames = try FileStorage.writeImage(image)
         } catch {
-            NSLog("SupaClip: could not write image — \(error.localizedDescription)")
+            NSLog("Cache: could not write image — \(error.localizedDescription)")
             return false
         }
 
@@ -263,7 +263,7 @@ final class ClipStore {
         ThumbnailCache.clear()
 
         save()
-        NSLog("SupaClip: cleared \(unpinned.count) unpinned clip(s)")
+        NSLog("Cache: cleared \(unpinned.count) unpinned clip(s)")
     }
 
     // MARK: - Pruning
@@ -304,7 +304,7 @@ final class ClipStore {
             try context.save()
         } catch {
             // A failed save shouldn't take the app down — the next capture retries.
-            NSLog("SupaClip: save failed — \(error.localizedDescription)")
+            NSLog("Cache: save failed — \(error.localizedDescription)")
         }
     }
 }

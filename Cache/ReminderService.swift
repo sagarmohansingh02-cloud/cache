@@ -4,7 +4,7 @@ import UserNotifications
 /// Local notifications for clip reminders.
 ///
 /// `UNUserNotificationCenter` schedules these entirely on-device — the system
-/// holds the pending notification and fires it even if SupaClip isn't running.
+/// holds the pending notification and fires it even if Cache isn't running.
 /// Nothing leaves the machine, so this stays inside the no-network rule.
 @MainActor
 enum ReminderService {
@@ -15,7 +15,7 @@ enum ReminderService {
             return try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .sound])
         } catch {
-            NSLog("SupaClip: notification authorization failed — \(error.localizedDescription)")
+            NSLog("Cache: notification authorization failed — \(error.localizedDescription)")
             return false
         }
     }
@@ -53,7 +53,7 @@ enum ReminderService {
         do {
             try await UNUserNotificationCenter.current().add(request)
         } catch {
-            NSLog("SupaClip: could not schedule reminder — \(error.localizedDescription)")
+            NSLog("Cache: could not schedule reminder — \(error.localizedDescription)")
         }
     }
 

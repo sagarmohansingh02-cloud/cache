@@ -41,7 +41,7 @@ or content types, or **Pause capture**, if you handle secrets that way.
 
 | What | Where |
 |---|---|
-| Clipboard history | `~/Library/Application Support/com.sagarmohansingh.supaclip/` |
+| Clipboard history | `~/Library/Application Support/com.sagarmohansingh.cache/` |
 | Images and screenshots | `.../Clips/` in that same folder |
 | Settings | macOS user defaults |
 

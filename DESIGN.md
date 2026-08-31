@@ -1,4 +1,4 @@
-# SupaClip — UI & interaction spec
+# Cache — UI & interaction spec
 
 Derived from seven reference recordings (Supaste). This is the target; where it
 disagrees with what's built, this file wins.

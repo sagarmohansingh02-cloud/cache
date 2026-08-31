@@ -16,7 +16,7 @@ final class OCRService {
     /// free to deprioritise. A concurrent queue here would let a burst of
     /// screenshots saturate the CPU of an app that's meant to be invisible.
     private static let queue = DispatchQueue(
-        label: "com.sagarmohansingh.supaclip.ocr",
+        label: "com.sagarmohansingh.cache.ocr",
         qos: .utility
     )
 
@@ -63,7 +63,7 @@ final class OCRService {
 
         guard let pending = try? context.fetch(descriptor), !pending.isEmpty else { return }
 
-        NSLog("SupaClip: recognising text in \(pending.count) older image(s)")
+        NSLog("Cache: recognising text in \(pending.count) older image(s)")
         for clip in pending {
             enqueue(clip)
         }
@@ -100,7 +100,7 @@ final class OCRService {
         do {
             try handler.perform([request])
         } catch {
-            NSLog("SupaClip: OCR failed — \(error.localizedDescription)")
+            NSLog("Cache: OCR failed — \(error.localizedDescription)")
             return nil
         }
 

@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// The hosting view every SupaClip panel uses. It fixes two AppKit behaviours
+/// The hosting view every Cache panel uses. It fixes two AppKit behaviours
 /// that are wrong for a menu bar utility.
 ///
-/// **1. First click.** SupaClip is an `LSUIElement` app whose panels are all
+/// **1. First click.** Cache is an `LSUIElement` app whose panels are all
 /// `.nonactivatingPanel`, so the app is never the active application. macOS
 /// treats the first click on an inactive app's window as the click that brings
 /// it forward and, by default, does *not* deliver it to the view underneath.

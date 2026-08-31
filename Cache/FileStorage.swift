@@ -20,13 +20,100 @@ enum FileStorage {
 
     /// `~/Library/Application Support/<BundleID>/` — the one place this app owns.
     static var containerDirectory: URL {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.sagarmohansingh.supaclip"
+        let bundleID = Bundle.main.bundleIdentifier ?? defaultBundleID
         let directory = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(bundleID, isDirectory: true)
 
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
+    }
+
+    static let defaultBundleID = "com.sagarmohansingh.cache"
+
+    /// What the app was called while it was being built.
+    private static let legacyBundleID = "com.sagarmohansingh.supaclip"
+
+    private static let legacyStoreName = "SupaClip.store"
+    static let storeName = "Cache.store"
+
+    // MARK: - Migration
+
+    /// Carry an existing install across the rename, once.
+    ///
+    /// Both the data folder and the preferences are keyed to the bundle
+    /// identifier, so changing it points a working install at an empty folder
+    /// and a blank set of preferences — history gone, hotkey unbound — with
+    /// nothing on screen to say why. This moves the old folder into place and
+    /// copies the preferences over.
+    ///
+    /// **Must run before anything touches `containerDirectory` or
+    /// `UserDefaults`**, because reading either is what creates the empty
+    /// versions this is trying to avoid.
+    static func migrateLegacyInstallIfNeeded() {
+        migrateLegacyContainer()
+        migrateLegacyDefaults()
+    }
+
+    private static func migrateLegacyContainer() {
+        let fm = FileManager.default
+        let support = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let legacy = support.appendingPathComponent(legacyBundleID, isDirectory: true)
+        let current = support.appendingPathComponent(
+            Bundle.main.bundleIdentifier ?? defaultBundleID,
+            isDirectory: true
+        )
+
+        // Never move onto a folder that already exists. A second launch, or a
+        // fresh install that has already started collecting clips, must not be
+        // buried under a stale copy.
+        guard legacy != current,
+              fm.fileExists(atPath: legacy.path),
+              !fm.fileExists(atPath: current.path)
+        else { return }
+
+        do {
+            try fm.moveItem(at: legacy, to: current)
+        } catch {
+            NSLog("Cache: could not move data from the old folder — \(error.localizedDescription)")
+            return
+        }
+
+        // SwiftData will look for the store under the new name, so the three
+        // SQLite files travel with it. The -wal holds writes that have not been
+        // checkpointed yet; leaving it behind would silently roll them back.
+        for suffix in ["", "-shm", "-wal"] {
+            let old = current.appendingPathComponent(legacyStoreName + suffix)
+            let new = current.appendingPathComponent(storeName + suffix)
+            guard fm.fileExists(atPath: old.path), !fm.fileExists(atPath: new.path) else { continue }
+            try? fm.moveItem(at: old, to: new)
+        }
+
+        NSLog("Cache: moved existing data over from \(legacyBundleID)")
+    }
+
+    /// Preferences live under the bundle identifier too — the global hotkey,
+    /// the toggles, the history limit. Anything already set under the new
+    /// identifier wins, so this can never undo a deliberate choice.
+    private static func migrateLegacyDefaults() {
+        let defaults = UserDefaults.standard
+        let currentBundleID = Bundle.main.bundleIdentifier ?? defaultBundleID
+
+        guard currentBundleID != legacyBundleID,
+              let legacy = defaults.persistentDomain(forName: legacyBundleID),
+              !legacy.isEmpty
+        else { return }
+
+        var merged = defaults.persistentDomain(forName: currentBundleID) ?? [:]
+        var carried = 0
+        for (key, value) in legacy where merged[key] == nil {
+            merged[key] = value
+            carried += 1
+        }
+
+        guard carried > 0 else { return }
+        defaults.setPersistentDomain(merged, forName: currentBundleID)
+        NSLog("Cache: carried \(carried) preference(s) over from \(legacyBundleID)")
     }
 
     static var clipsDirectory: URL {

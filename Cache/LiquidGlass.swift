@@ -7,7 +7,7 @@ import SwiftUI
 /// dynamic glass material that refracts and reflects what is behind the window,
 /// rather than just blurring it the way `NSVisualEffectView` does. There is no
 /// SwiftUI `glassEffect` modifier in this SDK — the AppKit view is the API — and
-/// since every SupaClip surface is already an AppKit panel, bridging it is a
+/// since every Cache surface is already an AppKit panel, bridging it is a
 /// two-line job.
 ///
 /// The deployment target is macOS 14, so anything older falls back to the

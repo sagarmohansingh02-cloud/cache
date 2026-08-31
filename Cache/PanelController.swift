@@ -81,7 +81,7 @@ final class PanelController {
         let panel = FloatingPanel(
             contentRect: NSRect(x: 0, y: 0, width: Theme.libraryWidth, height: Theme.libraryHeight),
             // `.nonactivatingPanel` is the important one: the panel accepts key
-            // input without making SupaClip the active application.
+            // input without making Cache the active application.
             styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false

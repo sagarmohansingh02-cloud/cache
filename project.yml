@@ -19,13 +19,13 @@ targets:
     deploymentTarget: "14.0"
 
     sources:
-      - path: SupaClip
+      - path: Cache
 
     dependencies:
       - package: KeyboardShortcuts
 
     info:
-      path: SupaClip/Info.plist
+      path: Cache/Info.plist
       properties:
         # Menu bar only — no Dock icon, no main window on launch.
         LSUIElement: true
@@ -37,14 +37,14 @@ targets:
         NSHumanReadableCopyright: "Copyright © 2026 Sagarmohan Singh. All rights reserved."
 
     entitlements:
-      path: SupaClip/SupaClip.entitlements
+      path: Cache/Cache.entitlements
       properties:
         # App Sandbox OFF — required for file drag-out and, later, Accessibility.
         com.apple.security.app-sandbox: false
 
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sagarmohansingh.supaclip
+        PRODUCT_BUNDLE_IDENTIFIER: com.sagarmohansingh.cache
         MARKETING_VERSION: "1.0.2"
         CURRENT_PROJECT_VERSION: "2"
         SWIFT_VERSION: "5.9"

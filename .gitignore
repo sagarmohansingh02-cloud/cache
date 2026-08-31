@@ -8,7 +8,6 @@ xcuserdata/
 
 # XcodeGen output — regenerate with `xcodegen generate`
 Cache.xcodeproj/
-SupaClip.xcodeproj/
 
 # SPM
 .swiftpm/

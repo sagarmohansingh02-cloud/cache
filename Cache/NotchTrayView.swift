@@ -5,7 +5,7 @@ import SwiftUI
 /// Whether the pill is currently on screen, and whether the pointer is on it.
 ///
 /// The pill is deliberately transient: it announces a copy and then gets out of
-/// the way. Nothing of SupaClip's should sit on the desktop permanently.
+/// the way. Nothing of Cache's should sit on the desktop permanently.
 @MainActor
 @Observable
 final class TrayPresentation {

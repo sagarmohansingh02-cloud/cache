@@ -92,12 +92,12 @@ can lose your data:
 **1. Display name** — what shows in Finder, ⌘-Tab, Spotlight.
 Safe. Free. Tell me the name and it's done.
 
-**2. Bundle identifier** — currently `com.sagarmohansingh.supaclip`.
+**2. Bundle identifier** — currently `com.sagarmohansingh.cache`.
 **This one is destructive if handled carelessly.** The database and all saved
 screenshots live at:
 
 ```
-~/Library/Application Support/com.sagarmohansingh.supaclip/
+~/Library/Application Support/com.sagarmohansingh.cache/
 ```
 
 Change the bundle ID and the app looks in a *new, empty* folder — your 81 clips

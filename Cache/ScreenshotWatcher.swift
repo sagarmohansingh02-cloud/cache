@@ -76,7 +76,7 @@ final class ScreenshotWatcher {
         // holding it open for I/O.
         descriptor = open(directory.path, O_EVTONLY)
         guard descriptor >= 0 else {
-            NSLog("SupaClip: could not watch \(directory.path)")
+            NSLog("Cache: could not watch \(directory.path)")
             return
         }
 

@@ -241,7 +241,7 @@ struct ClipEditor: View {
         }
 
         let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
-        let name = (clip.title?.isEmpty == false ? clip.title! : "supaclip-image")
+        let name = (clip.title?.isEmpty == false ? clip.title! : "cache-image")
         let url = downloads.appendingPathComponent("\(name).\(exportFormat.fileExtension)")
 
         do {

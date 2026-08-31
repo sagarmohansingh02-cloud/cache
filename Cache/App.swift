@@ -12,7 +12,7 @@ import SwiftUI
 // Info.plist sets `LSUIElement: true`, and that flag — not any code here — is
 // what removes the Dock icon and the app menu bar.
 @main
-struct SupaClipApp: App {
+struct CacheApp: App {
     private let container: ModelContainer
     private let monitor: ClipboardMonitor
     private let panelController: PanelController
@@ -21,6 +21,12 @@ struct SupaClipApp: App {
     private let copyHUD: CopyHUDController
 
     init() {
+        // First, before anything reads the container directory or a default:
+        // the app used to be called SupaClip, and both its data folder and its
+        // preferences were keyed to that name. Reading either one is what
+        // creates the empty replacement, so the move has to happen ahead of it.
+        FileStorage.migrateLegacyInstallIfNeeded()
+
         let container: ModelContainer
         do {
             // Left to itself SwiftData drops a shared `default.store` straight
@@ -145,10 +151,10 @@ struct SupaClipApp: App {
     }
 
 
-    /// `~/Library/Application Support/<BundleID>/SupaClip.store`, alongside the
+    /// `~/Library/Application Support/<BundleID>/Cache.store`, alongside the
     /// `Clips/` folder. One definition of that path lives in `FileStorage`.
     private static func storeURL() -> URL {
-        FileStorage.containerDirectory.appendingPathComponent("SupaClip.store")
+        FileStorage.containerDirectory.appendingPathComponent(FileStorage.storeName)
     }
 
     var body: some Scene {
