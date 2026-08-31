@@ -1,0 +1,32 @@
+<Project>
+
+  <!--
+    Settings shared by every project under windows/.
+
+    TargetFramework note: the `-windows10.0.22621.0` suffix is what switches on
+    the WinRT projections — it is why `Windows.ApplicationModel.DataTransfer`
+    and `Windows.Media.Ocr` are callable from plain C# with no extra package.
+    SupportedOSPlatformVersion is set lower, to Windows 10 2004, so the app
+    still *runs* on older machines; anything newer than that is guarded at the
+    call site.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <Platforms>x64;ARM64</Platforms>
+
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Warnings are errors. The macOS app has the same rule in spirit: never
+         move on from a build that is trying to tell you something. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <Product>Cache</Product>
+    <Company>Sagarmohan Singh</Company>
+    <Copyright>Copyright © 2026 Sagarmohan Singh. All rights reserved.</Copyright>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+</Project>

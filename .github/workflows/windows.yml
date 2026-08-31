@@ -1,0 +1,35 @@
+name: Windows build
+
+# Compile-verification for the Windows port.
+#
+# The scaffold under windows/ was written on a Mac, where it cannot be built at
+# all. This workflow is the only thing standing between "it looks right" and
+# "it compiles" until someone opens it on a real Windows machine.
+
+on:
+  push:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/windows.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore windows/src/Cache.Core/Cache.Core.csproj
+
+      - name: Build
+        run: dotnet build windows/src/Cache.Core/Cache.Core.csproj --no-restore -c Release

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Cache.Core</RootNamespace>
+    <AssemblyName>Cache.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Plain ADO.NET over SQLite. Deliberately not EF Core: the schema is six
+         columns wide and hand-written SQL keeps the dependency surface small,
+         which matches the macOS app's "no heavy frameworks" rule. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>
