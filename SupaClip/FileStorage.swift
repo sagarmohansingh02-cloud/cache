@@ -81,6 +81,29 @@ enum FileStorage {
         }
     }
 
+    /// Move a clip's picture to the Trash rather than destroying it.
+    ///
+    /// For Clear History only. Deleting one clip is a small, deliberate act and
+    /// stays permanent; clearing is bulk and unattended, so a mis-click there
+    /// should cost a trip to the Finder rather than the pictures themselves.
+    ///
+    /// Only the full image is trashed. The thumbnail is derived from it and
+    /// worthless on its own — filling someone's Trash with 400px copies of
+    /// their own screenshots is noise, not safety.
+    static func trashFiles(imageFilename: String?, thumbnailFilename: String?) {
+        if let imageFilename {
+            let url = clipsDirectory.appendingPathComponent(imageFilename)
+            if FileManager.default.fileExists(atPath: url.path) {
+                try? FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            }
+        }
+
+        if let thumbnailFilename {
+            let url = clipsDirectory.appendingPathComponent(thumbnailFilename)
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
     // MARK: - Helpers
 
     /// AppKit note, and the trap here: `NSImage.size` is in *points*, not pixels.

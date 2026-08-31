@@ -218,7 +218,20 @@ final class ClipStore {
         save()
     }
 
-    /// Wipe everything, pinned clips included, and empty the Clips folder.
+    /// How many clips Clear History would remove, so the button can say what
+    /// it is about to do. Counted, never fetched — the full history is never
+    /// loaded just to produce a number.
+    func unpinnedCount() -> Int {
+        let descriptor = FetchDescriptor<Clip>(predicate: #Predicate { $0.isPinned == false })
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
+
+    /// Clear the history: every unpinned clip, with its pictures moved to the
+    /// Trash.
+    ///
+    /// Pinned clips survive. Pinning is the user saying "keep this", and a
+    /// bulk clear has no business overriding it — the previous version wiped
+    /// them too, which made pinning meaningless the moment anyone tidied up.
     ///
     /// Deliberately deletes row by row rather than with
     /// `context.delete(model: Clip.self)`. That batch form operates on the store
@@ -227,24 +240,22 @@ final class ClipStore {
     /// The database emptied while the list carried on displaying the old clips,
     /// which is why Clear All looked like it did nothing. Worse, the tray went on
     /// holding deleted models.
-    func clearAll() {
+    func clearHistory() {
         // The shelf points at rows that are about to stop existing.
         CopyTray.shared.clear()
 
-        let all = (try? context.fetch(FetchDescriptor<Clip>())) ?? []
-        for clip in all {
-            context.delete(clip)
-        }
+        let descriptor = FetchDescriptor<Clip>(predicate: #Predicate { $0.isPinned == false })
+        let unpinned = (try? context.fetch(descriptor)) ?? []
 
-        // Remove every file rather than walking rows we've already deleted.
-        let directory = FileStorage.clipsDirectory
-        if let contents = try? FileManager.default.contentsOfDirectory(
-            at: directory,
-            includingPropertiesForKeys: nil
-        ) {
-            for url in contents {
-                try? FileManager.default.removeItem(at: url)
-            }
+        // Each row's files are taken as the row goes. The folder can no longer
+        // simply be emptied, the way it was when this deleted everything —
+        // pinned clips still own pictures inside it.
+        for clip in unpinned {
+            FileStorage.trashFiles(
+                imageFilename: clip.imageFilename,
+                thumbnailFilename: clip.thumbnailFilename
+            )
+            context.delete(clip)
         }
 
         // Thumbnails are cached in memory by filename; without this the list
@@ -252,7 +263,7 @@ final class ClipStore {
         ThumbnailCache.clear()
 
         save()
-        NSLog("SupaClip: cleared \(all.count) clip(s)")
+        NSLog("SupaClip: cleared \(unpinned.count) unpinned clip(s)")
     }
 
     // MARK: - Pruning

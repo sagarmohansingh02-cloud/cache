@@ -178,7 +178,7 @@ struct SettingsView: View {
             }
             .font(.system(size: 13))
 
-            Text("Older unpinned clips are deleted automatically.")
+            Text("Older unpinned clips are deleted automatically. Pinned clips are never removed, by the limit or by clearing.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
@@ -209,14 +209,14 @@ struct SettingsView: View {
             .disabled(clipCount == 0)
             .padding(.top, 4)
             .confirmationDialog(
-                "Delete every clip?",
+                "Clear history?",
                 isPresented: $isConfirmingClear,
                 titleVisibility: .visible
             ) {
-                Button("Delete all", role: .destructive) { onClearAll() }
+                Button("Clear History", role: .destructive) { onClearAll() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This removes your entire history, including pinned clips and saved images. It can't be undone.")
+                Text("Deletes every unpinned clip. Pinned clips are kept, and images go to the Trash.")
             }
         }
     }
@@ -234,7 +234,7 @@ struct SettingsView: View {
             privacyLine("wifi.slash", "No network access. Cache makes no requests, has no account, and sends no analytics.")
             privacyLine("keyboard", "No keystroke monitoring. History comes from the system pasteboard, not from watching you type.")
 
-            Text("Clearing history deletes it from disk. Uninstalling removes the app; delete the Application Support folder to remove the data.")
+            Text("Clearing history removes it from disk, putting saved images in the Trash. Uninstalling removes the app; delete the Application Support folder to remove the data.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)
@@ -304,9 +304,10 @@ struct NotchSettingsSurface: View {
 
     @Bindable private var settings = AppSettings.shared
 
-    /// Counted rather than fetched. `@Query` here would materialise every Clip
-    /// just to show a number, against the rule that the app never loads the
-    /// full history.
+    /// What Clear History would delete — unpinned only, since pinned clips
+    /// survive it. Counted rather than fetched: `@Query` here would materialise
+    /// every Clip just to show a number, against the rule that the app never
+    /// loads the full history.
     @State private var clipCount = 0
 
     private var store: ClipStore {
@@ -320,8 +321,8 @@ struct NotchSettingsSurface: View {
             width: NotchGeometry.settingsSize.width,
             height: NotchGeometry.settingsSize.height,
             onClearAll: {
-                store.clearAll()
-                clipCount = 0
+                store.clearHistory()
+                refreshCount()
             },
             onClose: onClose
         )
@@ -332,7 +333,7 @@ struct NotchSettingsSurface: View {
     }
 
     private func refreshCount() {
-        clipCount = (try? modelContext.fetchCount(FetchDescriptor<Clip>())) ?? 0
+        clipCount = store.unpinnedCount()
     }
 }
 
