@@ -25,7 +25,9 @@ detected and filtered separately. Colours show as swatches with HEX / RGB / CMYK
 / HSL.
 
 **Stacks up as you copy.** Copy five things in a row and the notch counts them,
-then drag the whole stack out into Finder or any app at once.
+then drag the whole stack out into Finder or any app at once. The count pill
+floats above other windows, so it is off until you turn on **Show copy shelf**
+in Settings.
 
 **Collections.** File clips into your own groups. Screenshots get their own
 collection automatically.
@@ -44,7 +46,7 @@ Requires **macOS 14 (Sonoma) or later**. Built and tested on macOS 26.
 
 ### Download
 
-Grab the latest **`Cache-1.0.1.dmg`** from
+Grab the latest **`Cache-1.0.2.dmg`** from
 [Releases](https://github.com/sagarmohansingh02-cloud/cache/releases), open it,
 and drag Cache onto Applications.
 
