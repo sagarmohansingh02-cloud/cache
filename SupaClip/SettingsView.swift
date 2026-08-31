@@ -1,4 +1,5 @@
 import KeyboardShortcuts
+import SwiftData
 import SwiftUI
 
 /// The settings sheet, shown from the footer gear.
@@ -11,6 +12,15 @@ struct SettingsView: View {
 
     /// Apps seen in the history, offered as candidates for the ignore list.
     var knownApps: [FilterBar.SourceApp] = []
+
+    /// How many clips are stored right now, shown on the clear button so it
+    /// says what it is about to delete rather than asking you to guess.
+    var clipCount: Int = 0
+
+    /// The notch presents this in its own window, which is a different size
+    /// from the Library's sheet. Defaults keep every existing caller unchanged.
+    var width: CGFloat = Theme.panelWidth
+    var height: CGFloat = Theme.panelHeight
 
     let onClearAll: () -> Void
     let onClose: () -> Void
@@ -50,7 +60,7 @@ struct SettingsView: View {
             }
             .padding(16)
         }
-        .frame(width: Theme.panelWidth, height: Theme.panelHeight)
+        .frame(width: width, height: height)
     }
 
     // MARK: - Sections
@@ -166,11 +176,31 @@ struct SettingsView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
-            Button(role: .destructive) {
+            Button {
                 isConfirmingClear = true
             } label: {
-                Text("Clear all clips").font(.system(size: 13))
+                HStack(spacing: 6) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 11, weight: .medium))
+                    Text(clipCount > 0 ? "Clear History (\(clipCount))" : "Clear History")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundStyle(clipCount == 0 ? Color.secondary : Color.red)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule().fill(Color.red.opacity(clipCount == 0 ? 0 : 0.12))
+                )
+                .overlay(
+                    Capsule().strokeBorder(
+                        clipCount == 0 ? Theme.cardBorder : Color.red.opacity(0.35),
+                        lineWidth: 1
+                    )
+                )
+                .contentShape(Capsule())
             }
+            .buttonStyle(.plain)
+            .disabled(clipCount == 0)
             .padding(.top, 4)
             .confirmationDialog(
                 "Delete every clip?",
@@ -252,6 +282,51 @@ struct SettingsView: View {
             current.append(value)
         }
         settings[keyPath: keyPath] = current
+    }
+}
+
+/// Settings as the notch presents it.
+///
+/// Its own window, for the reason given in `NotchController.showSettings`. On
+/// the same dark glass as the strip, but rounded on all four corners — it hangs
+/// free in the desktop rather than meeting the screen edge, so there is no
+/// square top to align with anything.
+struct NotchSettingsSurface: View {
+    @Environment(\.modelContext) private var modelContext
+
+    let onClose: () -> Void
+
+    @Bindable private var settings = AppSettings.shared
+
+    /// Counted rather than fetched. `@Query` here would materialise every Clip
+    /// just to show a number, against the rule that the app never loads the
+    /// full history.
+    @State private var clipCount = 0
+
+    private var store: ClipStore {
+        ClipStore(context: modelContext, settings: settings)
+    }
+
+    var body: some View {
+        SettingsView(
+            settings: settings,
+            clipCount: clipCount,
+            width: NotchGeometry.settingsSize.width,
+            height: NotchGeometry.settingsSize.height,
+            onClearAll: {
+                store.clearAll()
+                clipCount = 0
+            },
+            onClose: onClose
+        )
+        .background(LiquidGlass(cornerRadius: 22, style: .regular))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .preferredColorScheme(.dark)
+        .onAppear(perform: refreshCount)
+    }
+
+    private func refreshCount() {
+        clipCount = (try? modelContext.fetchCount(FetchDescriptor<Clip>())) ?? 0
     }
 }
 

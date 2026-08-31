@@ -22,9 +22,16 @@ final class NotchController {
     private var isDetailOpen = false
     private var detailPanel: FloatingPanel?
 
+    private var isSettingsOpen = false
+    private var settingsPanel: FloatingPanel?
+
     /// Builds the detail card for a clip. Supplied by the app so the card can
     /// reach the store and the monitor.
     var detailBuilder: ((Clip, @escaping () -> Void) -> AnyView)?
+
+    /// Builds the settings surface. Supplied by the app so it can reach the
+    /// store for Clear History.
+    var settingsBuilder: ((@escaping () -> Void) -> AnyView)?
 
     private var hotZone: HotZoneWindow?
     private var hotZoneScreen: NSScreen?
@@ -122,6 +129,11 @@ final class NotchController {
                 // doesn't read as leaving.
                 region = region.union(detail)
             }
+            if isSettingsOpen, let settings = settingsPanel?.frame {
+                // Same for settings — otherwise reaching for the gear's own
+                // window is what dismisses it.
+                region = region.union(settings)
+            }
             if !region.insetBy(dx: -8, dy: -8).contains(location) {
                 hide()
             }
@@ -208,6 +220,60 @@ final class NotchController {
         isDetailOpen = false
     }
 
+    /// Settings, in its own window for the same reason as the detail card: the
+    /// strip cannot resize without AppKit aborting the process, and a sheet
+    /// over an `NSHostingView` in a borderless panel would force exactly that.
+    func showSettings() {
+        guard let builder = settingsBuilder, let screen = currentScreen else { return }
+
+        // Toggle: a second click on the gear puts it away.
+        if isSettingsOpen {
+            hideSettings()
+            return
+        }
+
+        let panel = settingsPanel ?? makeSettingsPanel()
+        settingsPanel = panel
+
+        // Hidden windows can be rearranged freely; visible ones cannot. Same
+        // rule as showDetail.
+        panel.orderOut(nil)
+        panel.contentView = FirstMouseHostingView(
+            rootView: builder { [weak self] in self?.hideSettings() }
+        )
+        panel.setFrame(NotchGeometry.settingsFrame(on: screen), display: false)
+
+        panel.orderFrontRegardless()
+        panel.makeKey()
+        isSettingsOpen = true
+    }
+
+    func hideSettings() {
+        settingsPanel?.orderOut(nil)
+        isSettingsOpen = false
+    }
+
+    private func makeSettingsPanel() -> FloatingPanel {
+        let panel = FloatingPanel(
+            contentRect: NSRect(origin: .zero, size: NotchGeometry.settingsSize),
+            styleMask: [.nonactivatingPanel, .borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        panel.isFloatingPanel = true
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = true
+        panel.hidesOnDeactivate = false
+        panel.animationBehavior = .none
+        panel.acceptsMouseMovedEvents = true
+
+        return panel
+    }
+
     private func makeDetailPanel() -> FloatingPanel {
         let panel = FloatingPanel(
             contentRect: NSRect(origin: .zero, size: NotchGeometry.detailSize),
@@ -231,6 +297,7 @@ final class NotchController {
 
     func hide() {
         hideDetail()
+        hideSettings()
         isShowing = false
 
         guard let panel, panel.isVisible else {

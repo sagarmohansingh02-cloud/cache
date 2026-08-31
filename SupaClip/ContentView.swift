@@ -119,6 +119,7 @@ struct ContentView: View {
             SettingsView(
                 settings: settings,
                 knownApps: availableApps,
+                clipCount: pinnedClips.count + recentClips.count,
                 onClearAll: {
                     store.clearAll()
                     isShowingSettings = false

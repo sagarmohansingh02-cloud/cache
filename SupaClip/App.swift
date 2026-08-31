@@ -87,9 +87,18 @@ struct SupaClipApp: App {
                     monitor: monitor,
                     onDismiss: dismiss,
                     onPreview: { clip in notchControllerBox.value?.showDetail(for: clip) },
-                    onOpenLibrary: { panelController.toggle() }
+                    onOpenLibrary: { panelController.toggle() },
+                    onOpenSettings: { notchControllerBox.value?.showSettings() }
                 )
                 .modelContainer(container)
+            )
+        }
+        // Settings gets its own window too, for the same reason as the detail
+        // card — see NotchController.showSettings.
+        notchController.settingsBuilder = { dismiss in
+            AnyView(
+                NotchSettingsSurface(onClose: dismiss)
+                    .modelContainer(container)
             )
         }
         // The detail card renders in its own window, built here so it can reach

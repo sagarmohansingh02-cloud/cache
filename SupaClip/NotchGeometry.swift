@@ -30,6 +30,23 @@ enum NotchGeometry {
             height: detailSize.height
         )
     }
+    /// Settings is its own window for the same reason the detail card is: the
+    /// strip must never resize. Narrower and taller than the card — it's a
+    /// column of controls, not a wide preview.
+    static let settingsSize = CGSize(width: 420, height: 520)
+
+    /// Hangs below the strip like the detail card, but right-aligned under the
+    /// gear that opens it rather than starting at the strip's left edge.
+    static func settingsFrame(on screen: NSScreen) -> CGRect {
+        let strip = panelFrame(on: screen)
+        return CGRect(
+            x: (strip.maxX - settingsSize.width).rounded(),
+            y: (strip.minY - 8 - settingsSize.height).rounded(),
+            width: settingsSize.width,
+            height: settingsSize.height
+        )
+    }
+
     static let dotSize = CGSize(width: 14, height: 14)
 
     /// Wide enough for the expanded pill's thumbnails.

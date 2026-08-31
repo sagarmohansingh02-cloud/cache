@@ -23,6 +23,10 @@ struct NotchView: View {
     /// Opens the full library panel from the strip's expand button.
     var onOpenLibrary: (() -> Void)?
 
+    /// Opens settings. Like the detail card it gets its own window rather than
+    /// a sheet, so the strip never resizes.
+    var onOpenSettings: (() -> Void)?
+
     @State private var searchText = ""
     @State private var selectedKind: ClipKind?
     @State private var selectedCategory: String?
@@ -179,6 +183,9 @@ struct NotchView: View {
             circleAction("arrow.up.forward", help: "Open full library") {
                 onOpenLibrary?()
                 onDismiss()
+            }
+            circleAction("gearshape", help: "Settings") {
+                onOpenSettings?()
             }
 
             quitButton
