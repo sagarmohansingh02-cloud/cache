@@ -1,7 +1,6 @@
 # Cache — UI & interaction spec
 
-Derived from seven reference recordings (Supaste). This is the target; where it
-disagrees with what's built, this file wins.
+This is the target; where it disagrees with what's built, this file wins.
 
 The governing idea: **the notch is a live surface that reacts to every copy**,
 not a menu you open. Everything else follows from that.
