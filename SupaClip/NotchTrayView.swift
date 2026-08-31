@@ -57,16 +57,37 @@ struct NotchTrayView: View {
 
     private var pill: some View {
         HStack(spacing: 8) {
-            if isHovering {
-                thumbnails
-            } else {
-                fannedStack
-            }
+            // The draggable half: the stack and what it says.
+            //
+            // The drag handle covers only this, never the buttons. It is an
+            // AppKit view that swallows `mouseDown` so a press can become a
+            // drag — laid over the whole pill, as it used to be, that swallow
+            // also ate every click on ✕ and the open button, which is why
+            // neither worked. Scoping it to the content leaves the controls
+            // reachable and still lets a drag start from the pill's body.
+            HStack(spacing: 8) {
+                if isHovering {
+                    thumbnails
+                } else {
+                    fannedStack
+                }
 
-            Text(tray.summary)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
-                .fixedSize()
+                Text(tray.summary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .fixedSize()
+            }
+            .overlay(
+                StackDragHandle(
+                    makeItems: { tray.draggingItems() },
+                    // A press that never became a drag is a click, and a click
+                    // on the pill opens the strip. Handled inside the AppKit
+                    // view because it is the thing receiving the event —
+                    // `.onTapGesture` out here never sees it.
+                    onClick: { onOpenStrip() },
+                    onDragEnded: { tray.clear() }
+                )
+            )
 
             if isHovering {
                 Divider().frame(height: 14).overlay(.white.opacity(0.15))
@@ -88,18 +109,9 @@ struct NotchTrayView: View {
         )
         // Lifts toward the pointer, the way Apple's glass controls do.
         .scaleEffect(isHovering ? 1.03 : 1.0)
-        // The drag handle sits on top of everything so a drag started anywhere
-        // on the pill pulls the whole stack.
-        .overlay(
-            StackDragHandle(
-                makeItems: { tray.draggingItems() },
-                onDragEnded: { tray.clear() }
-            )
-        )
         // Hovering holds the pill open — the fade timer checks this before it
         // retracts, so reaching for the stack never has it vanish mid-reach.
         .onHover { hovering in presentation.isHovering = hovering }
-        .onTapGesture { onOpenStrip() }
     }
 
     /// Collapsed state: the stack peeking out from behind itself, so the pill

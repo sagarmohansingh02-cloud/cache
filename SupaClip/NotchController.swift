@@ -359,8 +359,13 @@ final class NotchController {
     /// seconds to grab the stack, and then leaves. Nothing belonging to this app
     /// should sit on the desktop permanently. The shelf's *contents* survive —
     /// hovering the notch still shows them — only the pill goes away.
+    /// Re-evaluate the pill after the setting changes, so switching it off puts
+    /// it away now rather than at the next copy.
+    func refreshTray() { updateTray() }
+
     private func updateTray() {
-        guard !CopyTray.shared.isEmpty, !isShowing else {
+        guard AppSettings.shared.showsCopyShelf,
+              !CopyTray.shared.isEmpty, !isShowing else {
             retractTray(animated: false)
             return
         }

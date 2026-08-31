@@ -88,6 +88,12 @@ struct SettingsView: View {
             )
 
             toggle(
+                "Show copy shelf",
+                detail: "The count pill that drops from the notch after each copy. It floats above other windows.",
+                isOn: $settings.showsCopyShelf
+            )
+
+            toggle(
                 "Save screenshots",
                 detail: "New screenshots are added automatically, even if you never copy them.",
                 isOn: $settings.capturesScreenshots

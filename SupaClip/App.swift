@@ -125,6 +125,9 @@ struct SupaClipApp: App {
         }
         notchControllerBox.value = notchController
         self.notchController = notchController
+        AppSettings.shared.onShowsCopyShelfChanged = {
+            notchControllerBox.value?.refreshTray()
+        }
         notchController.start()
 
         // The capture-confirmation flash. Driven by the pasteboard, not the

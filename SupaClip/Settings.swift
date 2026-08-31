@@ -27,6 +27,7 @@ final class AppSettings {
         static let ignoredKinds = "ignoredKinds"
         static let textExpansionEnabled = "textExpansionEnabled"
         static let didMigrateScreenshotDefault = "didMigrateScreenshotDefault"
+        static let showsCopyShelf = "showsCopyShelf"
     }
 
     /// Screenshot capture used to default to ON. Turning the default off is
@@ -104,6 +105,23 @@ final class AppSettings {
     /// Lets the watcher start and stop with the toggle rather than only at launch.
     @ObservationIgnored var onCapturesScreenshotsChanged: (() -> Void)?
 
+    /// The count pill that drops from the notch after each copy.
+    ///
+    /// **Off by default.** It floats above every other window, so in a
+    /// full-screen app — an editor, a timeline — it lands on top of the work
+    /// rather than beside it. Capture and the shelf itself are unaffected;
+    /// this only decides whether the pill is drawn.
+    var showsCopyShelf: Bool {
+        didSet {
+            UserDefaults.standard.set(showsCopyShelf, forKey: Keys.showsCopyShelf)
+            onShowsCopyShelfChanged?()
+        }
+    }
+
+    /// Lets the pill go away the moment it's switched off, rather than
+    /// lingering until the next copy.
+    @ObservationIgnored var onShowsCopyShelfChanged: (() -> Void)?
+
     /// When paused the poll timer keeps running but nothing is recorded — the
     /// timer stays alive so we don't miss the changeCount baseline on resume.
     var isPaused: Bool {
@@ -129,6 +147,8 @@ final class AppSettings {
         ])
 
         capturesScreenshots = defaults.bool(forKey: Keys.capturesScreenshots)
+        // Not registered, so an absent value reads false — off unless asked for.
+        showsCopyShelf = defaults.bool(forKey: Keys.showsCopyShelf)
         isPaused = defaults.bool(forKey: Keys.isPaused)
         historyLimit = min(defaults.integer(forKey: Keys.historyLimit), Self.maxHistoryLimit)
 
