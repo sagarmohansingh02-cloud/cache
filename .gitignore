@@ -19,3 +19,9 @@ Packages/
 
 # Packaged output — attached to GitHub releases, not committed
 dist/
+
+# Local working notes — design specs, agent instructions, briefs
+CLAUDE.md
+windows/CLAUDE.md
+ICON-BRIEF.md
+DESIGN.md

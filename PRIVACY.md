@@ -26,9 +26,11 @@ either is present the item is skipped entirely and never touches the database.
 1Password, Bitwarden, Keychain, Dashlane and anything else that follows the
 convention are all covered.
 
-This check has been in the app since its first commit, and it is verified by
-test: a clipboard item marked concealed produces no database row and no trace in
-the store files.
+The check is the first thing the capture path does, before a single byte of
+content is read — see `capture()` in `Cache/ClipboardMonitor.swift`. It has been
+in the app since its first commit. A concealed item is skipped permanently
+rather than retried, because the pasteboard change counter is banked before the
+guard runs.
 
 **The honest limitation:** this relies on the source app marking the item. If you
 manually select a password out of a plain text file and copy it, nothing marks it
@@ -48,7 +50,7 @@ or content types, or **Pause capture**, if you handle secrets that way.
 That is the complete list. Nothing is uploaded, backed up to a service, or shared
 between machines. There is no account to create and no telemetry.
 
-To remove everything: **Settings → Clear all clips**, or delete the folder above.
+To remove everything: **Settings → Clear History**, or delete the folder above.
 
 ---
 
