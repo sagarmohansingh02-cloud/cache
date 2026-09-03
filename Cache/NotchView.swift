@@ -43,6 +43,9 @@ struct NotchView: View {
     @State private var showPinnedOnly = false
     @State private var showTextOnly = false
 
+    /// Drives the strip's horizontal scrolling — see `HorizontalScroller`.
+    @State private var scroller = HorizontalScroller()
+
     @Bindable private var settings = AppSettings.shared
 
     private var store: ClipStore {
@@ -376,8 +379,36 @@ struct NotchView: View {
                     }
                 }
                 .padding(.bottom, 4)
+                .horizontalScroller(scroller)
             }
+            .overlay(alignment: .leading) { scrollArrow(.back) }
+            .overlay(alignment: .trailing) { scrollArrow(.forward) }
         }
+    }
+
+    /// The strip runs off the right edge as soon as there is any history worth
+    /// keeping, and a scroll is not an obvious way to move it, so each end
+    /// carries an arrow. It appears only while there is something out there to
+    /// reach, so an arrow never leads nowhere.
+    private func scrollArrow(_ direction: HorizontalScroller.Direction) -> some View {
+        let isAvailable = direction == .back ? scroller.canScrollBack : scroller.canScrollForward
+
+        return Button {
+            scroller.page(direction)
+        } label: {
+            Image(systemName: direction == .back ? "chevron.left" : "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(.black.opacity(0.55)))
+                .overlay(Circle().strokeBorder(.white.opacity(0.14)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .opacity(isAvailable ? 1 : 0)
+        .allowsHitTesting(isAvailable)
+        .animation(Theme.hoverFade, value: isAvailable)
+        .help(direction == .back ? "Newer clips" : "Older clips")
     }
 
     private var emptyState: some View {
