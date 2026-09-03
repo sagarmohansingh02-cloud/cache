@@ -348,7 +348,7 @@ struct NotchView: View {
         if filteredClips.isEmpty {
             emptyState
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
+            HorizontalStrip(scroller: scroller) {
                 HStack(alignment: .top, spacing: 16) {
                     ForEach(groupedByDay, id: \.label) { group in
                         VStack(alignment: .leading, spacing: 10) {
@@ -379,7 +379,6 @@ struct NotchView: View {
                     }
                 }
                 .padding(.bottom, 4)
-                .horizontalScroller(scroller)
             }
             .overlay(alignment: .leading) { scrollArrow(.back) }
             .overlay(alignment: .trailing) { scrollArrow(.forward) }
