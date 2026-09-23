@@ -65,18 +65,21 @@ FIRST LAUNCH
   Or, in Terminal:
       xattr -dr com.apple.quarantine /Applications/Cache.app
 
-THERE IS NO DOCK ICON
-  Cache lives in the menu bar and the notch.
-    - Move your pointer into the notch, or
-    - Click the clipboard icon in the menu bar, or
-    - Press Control-Command-V
+  macOS then asks whether Cache may open the folder your screenshots are
+  saved in. Allow it, and new screenshots appear in the notch.
 
-  A Dock icon appears while the Library window is open.
+THERE IS NO DOCK ICON
+  Cache lives in the notch.
+    - Move your pointer into the notch, or
+    - Press Control-Command-V, or
+    - Click the clipboard icon in the menu bar
+
+  Cache starts with your Mac. Turn that off in Settings.
 
 PRIVACY
   Passwords are never saved. Everything stays on your Mac. No network
-  requests, no account, no keystroke monitoring. Nothing is asked for at
-  launch. See PRIVACY.md in the repository.
+  requests, no account, no keystroke monitoring. See PRIVACY.md in the
+  repository.
 
   https://github.com/sagarmohansingh02-cloud/cache
 TXT
