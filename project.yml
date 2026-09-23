@@ -31,22 +31,26 @@ targets:
         LSUIElement: true
         CFBundleName: Cache
         CFBundleDisplayName: Cache
-        CFBundleShortVersionString: "1.0.2"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "2.0.0"
+        CFBundleVersion: "3"
         LSMinimumSystemVersion: "14.0"
         NSHumanReadableCopyright: "Copyright © 2026 Sagarmohan Singh. All rights reserved."
+        # Shown in the macOS prompt when Cache first opens the screenshot folder.
+        NSDesktopFolderUsageDescription: "Cache watches your screenshot folder so each new screenshot appears in the notch."
+        NSDocumentsFolderUsageDescription: "Cache watches your screenshot folder so each new screenshot appears in the notch."
+        NSDownloadsFolderUsageDescription: "Cache watches your screenshot folder so each new screenshot appears in the notch."
 
     entitlements:
       path: Cache/Cache.entitlements
       properties:
-        # App Sandbox OFF — required for file drag-out and, later, Accessibility.
+        # App Sandbox OFF — required to read the screenshot folder and to drag files out.
         com.apple.security.app-sandbox: false
 
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sagarmohansingh.cache
-        MARKETING_VERSION: "1.0.2"
-        CURRENT_PROJECT_VERSION: "2"
+        MARKETING_VERSION: "2.0.0"
+        CURRENT_PROJECT_VERSION: "3"
         SWIFT_VERSION: "5.9"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: NO
@@ -64,6 +68,11 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         COMBINE_HIDPI_IMAGES: YES
         SWIFT_EMIT_LOC_STRINGS: YES
+      configs:
+        # Debug runs get their own identity, so running from Xcode never touches
+        # the history, settings or login item of the copy in /Applications.
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.sagarmohansingh.cache.dev
 
 schemes:
   Cache:

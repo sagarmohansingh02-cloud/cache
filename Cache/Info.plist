@@ -17,13 +17,19 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.2</string>
+	<string>2.0.0</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>3</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Cache watches your screenshot folder so each new screenshot appears in the notch.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Cache watches your screenshot folder so each new screenshot appears in the notch.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Cache watches your screenshot folder so each new screenshot appears in the notch.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Sagarmohan Singh. All rights reserved.</string>
 </dict>
