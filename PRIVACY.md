@@ -44,7 +44,7 @@ or content types, or **Pause capture**, if you handle secrets that way.
 | What | Where |
 |---|---|
 | Clipboard history | `~/Library/Application Support/com.sagarmohansingh.cache/` |
-| Images and screenshots | `.../Clips/` in that same folder |
+| Images and screenshots | `.../Clips/` in that same folder — a copy, so the original stays where you saved it |
 | Settings | macOS user defaults |
 
 That is the complete list. Nothing is uploaded, backed up to a service, or shared
@@ -75,13 +75,15 @@ request Accessibility or Input Monitoring permission, and does not need them.
 
 ## Permissions
 
-Cache requests nothing at launch. See [PERMISSIONS.md](PERMISSIONS.md) for the
-full detail. In short:
+See [PERMISSIONS.md](PERMISSIONS.md) for the full detail. In short:
 
-- **Desktop / screenshot folder** — only if you turn *Save screenshots* on
-- **Notifications** — only if you set a reminder on a clip
+- **The screenshot folder** — asked once, so new screenshots can be filed.
+  Decline it, or switch *Save screenshots* off, and everything else still works.
+- **Login item** — Cache starts with your Mac so capture doesn't stop after a
+  restart. Switch off *Open at login* in Settings to remove it.
 
-Both are optional. The app is fully usable without granting either.
+Cache never asks for Accessibility, Input Monitoring, Screen Recording or Full
+Disk Access.
 
 ---
 

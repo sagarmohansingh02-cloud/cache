@@ -9,28 +9,29 @@ ask for, when, and why — and how to stop macOS asking twice.
 
 | Permission | When | Why |
 |---|---|---|
-| **Desktop folder** *(or wherever screenshots are saved)* | Only after you switch **Save screenshots** on in Settings | To notice new screenshots and file them |
-| **Notifications** | Only when you set a reminder on a clip | To fire that reminder |
+| **The folder your screenshots are saved in** *(usually inside Desktop)* | The first time Cache looks at it — at first launch, while **Save screenshots** is on | To notice new screenshots and file them |
+| **Login item** | Registered once, on first launch from /Applications | So capture keeps running after a restart. macOS shows a notice; remove it in System Settings → General → Login Items, or switch off **Open at login** |
 
-Nothing is requested at launch. A fresh install prompts for nothing at all.
-
-**Cache never asks for Accessibility, Input Monitoring or Full Disk Access**, and
-does not need them. It does not read keystrokes. Clipboard history is read by
-polling `NSPasteboard.changeCount`, which is unprivileged.
+**Cache never asks for Accessibility, Input Monitoring, Screen Recording or Full
+Disk Access**, and does not need them. It does not read keystrokes. Clipboard
+history is read by polling `NSPasteboard.changeCount`, which is unprivileged.
+Screenshots are the files macOS itself saved — Cache never captures your screen.
 
 ---
 
-## Why "Save screenshots" triggers a Desktop prompt
+## Why Cache asks about your Desktop
 
-macOS saves screenshots to the Desktop by default, and Desktop is a protected
-location. Watching that folder is what the prompt is for.
+macOS saves screenshots to the Desktop by default, and the Desktop is a protected
+location, as are Documents and Downloads. Watching the screenshot folder is what
+the prompt is for, and it names that reason.
 
-The switch is **off by default** precisely so this prompt never appears
-unprompted. Turning it on and immediately being asked for the screenshot folder
-is an obvious consequence; being asked on first launch, before you have done
-anything, is not.
+Screenshots are half of what Cache is for, so saving them is on from the start,
+and the prompt comes with the first launch rather than hiding behind a setting.
+Turn **Save screenshots** off and Cache stops looking at the folder.
 
-If you would rather not grant it at all, point macOS at an unprotected folder:
+If you decline, the notch shows why screenshots aren't arriving, and **Allow
+Access** opens System Settings → Privacy & Security → Files & Folders. Or, to
+avoid the permission altogether, point macOS at an unprotected folder:
 
 ```bash
 mkdir -p ~/Screenshots
@@ -38,8 +39,8 @@ defaults write com.apple.screencapture location ~/Screenshots
 killall SystemUIServer
 ```
 
-Cache follows `com.apple.screencapture location`, so it will watch the new folder
-and no permission is required.
+Cache follows `com.apple.screencapture location` within a few seconds, so it will
+watch the new folder and no permission is required.
 
 ---
 
