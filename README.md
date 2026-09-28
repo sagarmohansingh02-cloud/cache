@@ -9,6 +9,8 @@ images and screenshots, with the text inside your screenshots searchable.
 Everything stays on your Mac. No account, no sync, no network requests, and
 passwords are never saved.
 
+<p align="center"><img src="docs/cache-demo.gif" width="560" alt="Cache: take a screenshot of a receipt, press Control-Command-V, type 4471, and the receipt comes back with its text recognised"></p>
+
 ---
 
 ## What it does
@@ -55,9 +57,19 @@ Grab the latest **`Cache-2.0.0.dmg`** from
 [Releases](https://github.com/sagarmohansingh02-cloud/cache/releases), open it,
 and drag Cache onto Applications.
 
-On first launch macOS will say the app is from an unidentified developer,
-because this build is not signed with a paid Apple Developer certificate.
-Right-click **Cache.app → Open** and confirm. Once only.
+This build is not signed with a paid Apple Developer certificate, so macOS
+blocks the first launch. You approve it once:
+
+**macOS 15 (Sequoia) and later**
+1. Open Cache. macOS says it can't verify the app — click **Done**.
+2. Open **System Settings → Privacy & Security** and scroll to the bottom.
+3. Next to *"Cache" was blocked*, click **Open Anyway**, enter your password,
+   then click **Open**.
+
+**macOS 14 (Sonoma)** — right-click **Cache.app → Open** and confirm.
+
+Or skip the dialogs from Terminal:
+`xattr -dr com.apple.quarantine /Applications/Cache.app`
 
 macOS then asks whether Cache may open the folder your screenshots are saved in.
 Allow it, and screenshots start arriving.
@@ -90,7 +102,8 @@ or use the clipboard icon in the menu bar.
 
 ### If macOS says the app is damaged or from an unidentified developer
 
-Unsigned builds trip Gatekeeper. Either right-click the app → **Open**, or:
+Unsigned builds trip Gatekeeper. On macOS 15 and later use **System Settings →
+Privacy & Security → Open Anyway**; on macOS 14 right-click the app → **Open**. Or:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Cache.app

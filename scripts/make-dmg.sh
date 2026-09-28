@@ -59,7 +59,15 @@ FIRST LAUNCH
   This build is not signed with a paid Apple Developer certificate, so macOS
   will say it is from an unidentified developer.
 
-  Right-click Cache.app in Applications and choose Open, then confirm.
+  macOS 15 (Sequoia) and later:
+    1. Open Cache. When macOS says it can't verify the app, click Done.
+    2. Open System Settings > Privacy & Security, scroll to the bottom.
+    3. Next to "Cache" was blocked, click Open Anyway, enter your
+       password, then click Open.
+
+  macOS 14 (Sonoma):
+    Right-click Cache.app in Applications and choose Open, then confirm.
+
   You only need to do this once.
 
   Or, in Terminal:
