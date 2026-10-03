@@ -197,7 +197,6 @@ html.is-timeline [data-beat="problem"] .h1 { position: relative; }
 .beat .badge { margin-bottom: 20px; }
 .beat .sub { max-width: 640px; margin: 22px auto 0; }
 .beat-hero { display: flex; flex-direction: column; align-items: center; text-align: center; }
-.hero-icon { width: 112px; height: 112px; margin-bottom: 26px; }
 .beat-hero .eyebrow { margin-bottom: 20px; }
 .beat-hero .lede { max-width: 700px; margin: 26px auto 34px; }
 .beat-hero .fine { margin-top: 22px; }
