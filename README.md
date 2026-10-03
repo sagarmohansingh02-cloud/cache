@@ -41,6 +41,10 @@ detected and filtered separately. Colours show as swatches, with HEX / RGB / HSL
 **Collections and stars.** File clips into your own collections; star the ones
 that should survive Clear History.
 
+**Deletes with a way back.** Hover a card and click the trash, or press `⌘⌫`.
+The card goes at once, and Undo brings it back for a few seconds after — so
+nothing asks "Are you sure?".
+
 **Starts with your Mac.** Installed in /Applications, Cache adds itself as a login
 item on first launch, so capture never silently stops after a restart. Switch
 it off in Settings.
@@ -53,7 +57,7 @@ Requires **macOS 14 (Sonoma) or later**. Built and tested on macOS 26.
 
 ### Download
 
-Grab the latest **`Cache-2.0.0.dmg`** from
+Grab the latest **`Cache-2.1.0.dmg`** from
 [Releases](https://github.com/sagarmohansingh02-cloud/cache/releases), open it,
 and drag Cache onto Applications.
 
@@ -158,12 +162,13 @@ Full detail in [PRIVACY.md](PRIVACY.md) and [PERMISSIONS.md](PERMISSIONS.md).
 | `⌘1` – `⌘9` | Copy one of the first nine cards (hold `⌘` to see which) |
 | `Space` | Preview the selected card |
 | `⌘⌫` | Delete the selected card |
+| `⌘Z` | Undo a delete, for a few seconds after |
 | `⌘F` | Search |
 | `Esc` | Close the preview, then clear the search, then close |
 
 Click a card to copy it; the panel gets out of the way so `⌘V` lands where you
-were working. Drag a card out to drop it into any app. Right-click for everything
-else.
+were working. Hover a card to preview, star or delete it. Drag a card out to drop
+it into any app. Right-click for everything else.
 
 ---
 

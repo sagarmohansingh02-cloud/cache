@@ -31,8 +31,8 @@ targets:
         LSUIElement: true
         CFBundleName: Cache
         CFBundleDisplayName: Cache
-        CFBundleShortVersionString: "2.0.0"
-        CFBundleVersion: "3"
+        CFBundleShortVersionString: "2.1.0"
+        CFBundleVersion: "4"
         LSMinimumSystemVersion: "14.0"
         NSHumanReadableCopyright: "Copyright © 2026 Sagarmohan Singh. All rights reserved."
         # Shown in the macOS prompt when Cache first opens the screenshot folder.
@@ -49,8 +49,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sagarmohansingh.cache
-        MARKETING_VERSION: "2.0.0"
-        CURRENT_PROJECT_VERSION: "3"
+        MARKETING_VERSION: "2.1.0"
+        CURRENT_PROJECT_VERSION: "4"
         SWIFT_VERSION: "5.9"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_APP_SANDBOX: NO
