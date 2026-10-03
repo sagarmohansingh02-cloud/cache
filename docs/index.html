@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cache — Give your notch a memory</title>
+<meta name="description" content="Cache keeps everything you copy and every screenshot you take in your Mac’s notch, and lets you search the words inside your screenshots. Free and open source, with no network access. macOS 14 or later.">
+<link rel="canonical" href="https://sagarmohansingh02-cloud.github.io/cache/">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cache">
+<meta property="og:title" content="Cache — Give your notch a memory">
+<meta property="og:description" content="Every copy and every screenshot, kept in your Mac’s notch. Search the words inside your screenshots. Free, open source, and no network access.">
+<meta property="og:url" content="https://sagarmohansingh02-cloud.github.io/cache/">
+<meta property="og:image" content="https://sagarmohansingh02-cloud.github.io/cache/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Cache’s panel open beneath a MacBook notch, with recent copies laid out as cards.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@SagarmohanSingh">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/site.css">
+<script>
+  // Decide the story's mode before first paint: the scroll-driven stage on a big
+  // screen, a plain stacked page on phones and for anyone who asked for less motion.
+  (function () {
+    var d = document.documentElement;
+    d.classList.add("js");
+    var big = matchMedia("(min-width: 1024px) and (min-height: 560px)").matches;
+    var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (big && !calm) d.classList.add("is-timeline");
+  })();
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Cache",
+  "description": "Clipboard and screenshot history for macOS that lives in the notch, with on-device text search inside screenshots and no network access.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "macOS 14 or later",
+  "softwareVersion": "2.1.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "downloadUrl": "https://github.com/sagarmohansingh02-cloud/cache/releases/latest",
+  "codeRepository": "https://github.com/sagarmohansingh02-cloud/cache",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Sagarmohan Singh", "url": "https://x.com/SagarmohanSingh" }
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar" id="bar">
+  <nav class="bar-l" aria-label="Primary">
+    <a class="brand" href="#top"><img src="assets/icon-256.png" alt="" width="18" height="18">Cache</a>
+    <a class="bar-link" href="#privacy">Privacy</a>
+    <a class="bar-link" href="#keyboard">Keyboard</a>
+    <a class="bar-link" href="#features">Details</a>
+    <a class="bar-link" href="#open-source">Open source</a>
+  </nav>
+  <div class="bar-r">
+    <a class="bar-link bar-gh" href="https://github.com/sagarmohansingh02-cloud/cache">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.88.87 2.34.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.66 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>
+      <span>GitHub</span>
+    </a>
+    <a class="bar-cta" href="https://github.com/sagarmohansingh02-cloud/cache/releases/download/v2.1.0/Cache-2.1.0.dmg" data-download>Download</a>
+  </div>
+</header>
+
+<!-- The notch. Drawn by site.js in the app's own points: it peeks, opens and closes
+     exactly like Cache does. Decorative; everything it shows is also said in text. -->
+<div class="nt" id="notch" aria-hidden="true"></div>
+
+<main id="main">
+
+  <!-- ———————— The story: the launch film, told by scrolling ———————— -->
+  <section class="story" id="top" aria-label="What Cache does">
+    <div class="stage" id="stage">
+      <div class="screen" id="screen" aria-hidden="true"><div class="wall"></div><div class="dim" id="dim"></div></div>
+      <div class="scene-ui" id="scene" aria-hidden="true"></div>
+      <div class="flash" id="flash" aria-hidden="true"></div>
+      <div class="flood" id="flood" aria-hidden="true"></div>
+
+      <div class="beats" id="beats">
+        <div class="beat beat-hero" data-beat="hero">
+          <img class="hero-icon" src="assets/icon-512.png" width="112" height="112" alt="The Cache app icon">
+          <p class="eyebrow">Cache for Mac</p>
+          <h1 class="display">Give your notch a&nbsp;memory.</h1>
+          <p class="lede">Every copy and every screenshot, kept in your Mac’s notch. Search even the words inside your screenshots.</p>
+          <div class="ctas">
+            <a class="btn btn-primary" href="https://github.com/sagarmohansingh02-cloud/cache/releases/download/v2.1.0/Cache-2.1.0.dmg" data-download>Download for Mac</a>
+            <button class="btn btn-ghost" type="button" data-film>
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.8v10.4c0 .6.66.97 1.17.65l8.2-5.2a.77.77 0 0 0 0-1.3l-8.2-5.2A.77.77 0 0 0 3 1.8z" fill="currentColor"/></svg>
+              Watch the film <small>48s</small>
+            </button>
+          </div>
+          <p class="fine">Free and open source · macOS 14 or later · Apple silicon and Intel</p>
+        </div>
+
+        <figure class="beat beat-film" data-static-only>
+          <div class="film-inline">
+            <video src="assets/film-1x1.mp4" poster="assets/poster-1x1.jpg" muted loop playsinline preload="none" controls aria-label="The Cache launch film, 48 seconds"></video>
+          </div>
+          <figcaption class="fine">The launch film · 48 seconds</figcaption>
+        </figure>
+
+        <div class="beat" data-beat="problem">
+          <h2 class="h1"><span class="line-a">Your clipboard holds one thing.</span> <span class="line-b">Copy again, and it’s gone.</span></h2>
+        </div>
+        <div class="beat" data-beat="kept">
+          <h2 class="h1">Now every copy is kept.</h2>
+        </div>
+        <div class="beat" data-beat="notch">
+          <h2 class="h1">It lives in the notch.</h2>
+          <p class="sub">Move your pointer into the notch, or press ⌃⌘V. Click a card to copy it, and Cache gets out of the way so ⌘V lands where you were.</p>
+        </div>
+        <div class="beat" data-beat="kinds">
+          <h2 class="h1">Knows what things are.</h2>
+          <p class="sub">Text, links, colours, code, files and images, each in its own filter.</p>
+        </div>
+        <div class="beat" data-beat="shot">
+          <h2 class="h1">Every screenshot, filed.</h2>
+          <p class="sub">A new screenshot lands the moment macOS saves it, and Cache follows your screenshot folder if you move it.</p>
+        </div>
+        <div class="beat" data-beat="search">
+          <p class="eyebrow">Text recognised on-device</p>
+          <h2 class="h2">Search the words inside your screenshots.</h2>
+          <p class="sub">Every screenshot is read on your Mac, so a receipt turns up by its order number.</p>
+        </div>
+        <div class="beat" data-beat="delete">
+          <p class="badge">New in 2.1</p>
+          <h2 class="h1">Delete, with a way back.</h2>
+          <p class="sub">Hover a card and click the trash. Change your mind, and Undo brings it back.</p>
+        </div>
+        <div class="beat" data-beat="private">
+          <h2 class="h1">Nothing leaves your Mac.</h2>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ———————— Privacy ———————— -->
+  <section class="section" id="privacy" aria-labelledby="privacy-title">
+    <div class="wrap">
+      <h2 class="stack" id="privacy-title"><span>No account.</span> <span>No sync.</span> <span>No network requests.</span></h2>
+      <div class="grid4">
+        <article class="tile reveal">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" stroke="#fff" stroke-width="2"/><path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7" stroke="#fff" stroke-width="2"/></svg></div>
+          <h3>Passwords? Never saved.</h3>
+          <p>Password managers mark what they copy as concealed. Cache skips those copies before it reads a single byte.</p>
+        </article>
+        <article class="tile reveal">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.5 9a12 12 0 0 1 17 0M6.5 12.3a7.6 7.6 0 0 1 11 0M9.5 15.6a3.4 3.4 0 0 1 5 0" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M4 4l16 16" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <h3>No networking code</h3>
+          <p>No analytics, no crash reports, no update check. Cache makes no requests of any kind, and the code is open, so you can check.</p>
+        </article>
+        <article class="tile reveal">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4.2l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.3A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <h3>Kept in one folder</h3>
+          <p>Your history lives in Application Support on your Mac, and nowhere else. Clear History, or delete the folder, and it’s gone.</p>
+        </article>
+        <article class="tile reveal">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h9M18 7h1M5 17h1M10 17h9" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" stroke="#fff" stroke-width="2"/><circle cx="8" cy="17" r="2.2" stroke="#fff" stroke-width="2"/></svg></div>
+          <h3>You decide what’s kept</h3>
+          <p>Pause capture from the notch. Ignore apps or kinds of content in Settings. Star what should outlast Clear History.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ———————— Keyboard ———————— -->
+  <section class="section center" id="keyboard" aria-labelledby="kb-title">
+    <div class="wrap">
+      <h2 class="h1 reveal" id="kb-title">Never leave the keyboard.</h2>
+      <p class="sub reveal" style="max-width:620px;margin:22px auto 0">Open it, find it, copy it and get back to work without reaching for the trackpad.</p>
+      <dl class="kb">
+        <div class="reveal"><dt><kbd>⌃</kbd><kbd>⌘</kbd><kbd>V</kbd></dt><dd>Open Cache with search ready</dd></div>
+        <div class="reveal"><dt><kbd>←</kbd><kbd>→</kbd></dt><dd>Move between cards</dd></div>
+        <div class="reveal"><dt><kbd class="word">return</kbd></dt><dd>Copy, and get out of the way</dd></div>
+        <div class="reveal"><dt><kbd>⌘</kbd><kbd>1</kbd><span>–</span><kbd>9</kbd></dt><dd>Copy one of the first nine</dd></div>
+        <div class="reveal"><dt><kbd class="word">space</kbd></dt><dd>Preview, with the text it found</dd></div>
+        <div class="reveal"><dt><kbd>⌘</kbd><kbd>⌫</kbd></dt><dd>Delete the selected card</dd></div>
+        <div class="reveal"><dt><kbd>⌘</kbd><kbd>Z</kbd></dt><dd>Undo a delete</dd></div>
+        <div class="reveal"><dt><kbd class="word">esc</kbd></dt><dd>Back out, one step at a time</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ———————— The details ———————— -->
+  <section class="section center" id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <h2 class="h1 reveal" id="features-title">The details.</h2>
+      <div class="bento">
+        <article class="tile wide reveal">
+          <div class="art"><div class="mini" data-art="colour"></div></div>
+          <div class="copy"><h3>Colours, decoded.</h3><p>Copy a colour and it arrives as a swatch, with HEX, RGB, HSL and CMYK one click away.</p></div>
+        </article>
+        <article class="tile reveal">
+          <div class="art"><div class="mini" data-art="peek"></div></div>
+          <div class="copy"><h3>A glance at every copy.</h3><p>The notch widens for a moment to show what you copied. Switch it off in Settings if you’d rather not.</p></div>
+        </article>
+        <article class="tile reveal">
+          <div class="art"><div class="mini" data-art="collections"></div></div>
+          <div class="copy"><h3>Collections and stars.</h3><p>File clips into collections of your own. Starred clips survive Clear History and the history limit.</p></div>
+        </article>
+        <article class="tile reveal">
+          <div class="art"><div class="mini" data-art="drag"></div></div>
+          <div class="copy"><h3>Drag it anywhere.</h3><p>Drag a card into any app. Screenshots arrive as files, with their real names.</p></div>
+        </article>
+        <article class="tile reveal">
+          <div class="art"><div class="mini" data-art="nonotch"></div></div>
+          <div class="copy"><h3>No notch? Still at home.</h3><p>On displays without one, Cache unrolls from the middle of the menu bar.</p></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ———————— Open source ———————— -->
+  <section class="section center oss" id="open-source" aria-labelledby="oss-title">
+    <div class="wrap">
+      <p class="eyebrow reveal">Open source</p>
+      <h2 class="quote reveal" id="oss-title">An app that sees everything you copy should be one you can read.</h2>
+      <p class="sub reveal">Cache is MIT-licensed and about 5,500 lines of Swift, built with SwiftUI, AppKit, SwiftData and Vision. Read every line, build it yourself, or watch it in a network monitor.</p>
+      <div class="ctas reveal">
+        <a class="btn btn-primary" href="https://github.com/sagarmohansingh02-cloud/cache">Read the code</a>
+        <a class="btn btn-ghost" href="https://github.com/sagarmohansingh02-cloud/cache/blob/main/PRIVACY.md">Read the privacy statement</a>
+      </div>
+      <ul class="facts reveal">
+        <li><b>MIT</b> licence</li>
+        <li><b>~5,500</b> lines of Swift</li>
+        <li><b>0</b> network requests</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ———————— Download ———————— -->
+  <section class="section dl" id="download" aria-labelledby="dl-title">
+    <div class="wrap">
+      <img class="icon reveal" src="assets/icon-512.png" width="132" height="132" alt="">
+      <h2 class="display reveal" id="dl-title">Cache <span class="ver" data-version>2.1</span></h2>
+      <p class="tagline reveal">Give your notch a memory.</p>
+      <div class="ctas reveal">
+        <a class="btn btn-primary btn-lg" href="https://github.com/sagarmohansingh02-cloud/cache/releases/download/v2.1.0/Cache-2.1.0.dmg" data-download>Download for Mac</a>
+      </div>
+      <p class="fine reveal"><span data-dl-meta>Version 2.1.0 · 2.8 MB disk image</span> · <a href="https://github.com/sagarmohansingh02-cloud/cache/releases">All releases</a></p>
+      <p class="fine reveal">macOS 14 Sonoma or later · Apple silicon and Intel · Free and open source</p>
+      <details class="first-launch reveal">
+        <summary>Opening it for the first time</summary>
+        <div>
+          <p style="margin-bottom:12px">Cache isn’t signed with a paid Apple Developer certificate yet, so macOS asks you to approve it once.</p>
+          <ol>
+            <li>Open the disk image and drag Cache onto Applications.</li>
+            <li>Open Cache. When macOS says it can’t verify the app, click <b>Done</b>.</li>
+            <li>Go to <b>System Settings → Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b> next to “Cache” was blocked.</li>
+          </ol>
+          <p style="margin-bottom:12px">On macOS 14 Sonoma, right-click Cache in Applications and choose <b>Open</b> instead. Or, in Terminal: <code>xattr -dr com.apple.quarantine /Applications/Cache.app</code></p>
+          <p>Then allow Cache to open your screenshot folder, and screenshots start arriving. There’s no Dock icon: move your pointer into the notch, or press ⌃⌘V.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="foot-l"><img src="assets/icon-256.png" alt="" width="20" height="20"><strong>Cache</strong><span>Made by <a href="https://x.com/SagarmohanSingh">Sagarmohan Singh</a></span></div>
+  <nav class="foot-r" aria-label="More">
+    <a href="https://github.com/sagarmohansingh02-cloud/cache">GitHub</a>
+    <a href="https://github.com/sagarmohansingh02-cloud/cache/releases">Releases</a>
+    <a href="https://github.com/sagarmohansingh02-cloud/cache/blob/main/PRIVACY.md">Privacy</a>
+    <a href="https://github.com/sagarmohansingh02-cloud/cache/blob/main/LICENSE">MIT licence</a>
+    <span>© 2026 Sagarmohan Singh</span>
+  </nav>
+</footer>
+
+<dialog class="film" id="film" aria-label="The Cache launch film">
+  <button class="film-close" type="button" data-film-close aria-label="Close the film">
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <video src="assets/film-16x9.mp4" poster="assets/poster-16x9.jpg" controls playsinline preload="none"></video>
+</dialog>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

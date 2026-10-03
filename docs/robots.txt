@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sagarmohansingh02-cloud.github.io/cache/sitemap.xml
