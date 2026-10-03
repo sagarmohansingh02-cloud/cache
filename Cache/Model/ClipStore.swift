@@ -102,9 +102,17 @@ final class ClipStore {
         save()
     }
 
-    func delete(_ clip: Clip) {
-        FileStorage.deleteFiles(of: clip)
-        context.delete(clip)
+    /// Deletes clips for good, files included. Looked up by id rather than
+    /// handed over as objects: a clip waiting out its Undo can be pruned or
+    /// cleared in the meantime, and a deleted model must not be touched again.
+    func delete(ids: [UUID]) {
+        for id in ids {
+            var descriptor = FetchDescriptor<Clip>(predicate: #Predicate { $0.id == id })
+            descriptor.fetchLimit = 1
+            guard let clip = (try? context.fetch(descriptor))?.first else { continue }
+            FileStorage.deleteFiles(of: clip)
+            context.delete(clip)
+        }
         save()
     }
 

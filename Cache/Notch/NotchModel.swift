@@ -29,6 +29,10 @@ final class NotchModel {
     var selection: UUID?
     /// The card that was just copied, showing its confirmation.
     var copiedClipID: UUID?
+    /// Cards deleted in the last few seconds, oldest first. Hidden from the
+    /// strip but still in the database, so Undo puts one back exactly where
+    /// it was.
+    var pendingDeletions: [UUID] = []
     /// ⌘ is held: the first nine cards show their ⌘1–9 shortcut.
     var showsShortcutHints = false
     /// Frozen when the panel opens, so every card's "5 min ago" agrees.

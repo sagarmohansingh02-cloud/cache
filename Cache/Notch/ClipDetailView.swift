@@ -65,6 +65,10 @@ struct ClipDetailView: View {
 
             Spacer(minLength: 12)
 
+            // Kept apart from Copy and Close, so neither click lands on it.
+            DeleteButton { actions.delete(clip) }
+                .padding(.trailing, 6)
+
             if let text = clip.ocrText, !text.isEmpty {
                 PillButton(title: "Copy Text", isPrimary: false) { actions.copyText(text) }
             }
@@ -248,6 +252,28 @@ private struct PillButton: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(PressableStyle())
+    }
+}
+
+/// Round like Close, and red under the pointer.
+private struct DeleteButton: View {
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "trash")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(isHovered ? Theme.label : Theme.secondaryLabel)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(isHovered ? Theme.destructive : Theme.raised))
+                .contentShape(Circle())
+        }
+        .buttonStyle(PressableStyle())
+        .onHover { hovering in withAnimation(Theme.hover) { isHovered = hovering } }
+        .help("Delete")
+        .accessibilityLabel("Delete")
     }
 }
 

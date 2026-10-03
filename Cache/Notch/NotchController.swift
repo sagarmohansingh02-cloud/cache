@@ -31,6 +31,9 @@ final class NotchController {
     private var pendingOpen: DispatchWorkItem?
     private var pendingClose: DispatchWorkItem?
     private var peekTimer: DispatchWorkItem?
+    /// Makes pending deletes final. Runs on its own clock, not the panel's:
+    /// closing the notch doesn't cut an Undo short.
+    private var deletionTimer: DispatchWorkItem?
     private var observers: [NSObjectProtocol] = []
 
     /// Set by the app so the gear can reach the Settings window.
@@ -41,6 +44,8 @@ final class NotchController {
     /// enough to feel immediate.
     private static let hoverIntent: TimeInterval = 0.07
     private static let peekDuration: TimeInterval = 1.6
+    /// How long a deleted card can still be brought back.
+    private static let undoWindow: TimeInterval = 5
 
     init(container: ModelContainer, store: ClipStore, monitor: ClipboardMonitor, watcher: ScreenshotWatcher, settings: AppSettings) {
         let screen = NotchGeometry.screenWithPointer() ?? NSScreen.screens[0]
@@ -217,12 +222,67 @@ final class NotchController {
         detail.hide()
     }
 
+    // MARK: - Deleting
+
+    /// Hides the card at once and deletes it for good a few seconds later, so
+    /// a stray click costs an Undo, not the clip. Apple's guidance is not to
+    /// ask "Are you sure?" about an action people can take back — so nothing
+    /// asks.
+    func delete(_ clip: Clip) {
+        if detail.isVisible {
+            detail.hide()
+            // The preview was under the pointer. With it gone the pointer is
+            // outside the notch, which would close it — and its Undo — on the
+            // next nudge of the mouse. Stay open until the pointer comes back.
+            pointerHasBeenInside = pointerIsOverPanel()
+        }
+        if model.selection == clip.id { model.selection = nil }
+        withAnimation(Theme.select) { model.pendingDeletions.append(clip.id) }
+
+        // Each delete restarts the clock, so a run of them stays undoable.
+        deletionTimer?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated { self?.finishDeletions() }
+        }
+        deletionTimer = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.undoWindow, execute: work)
+    }
+
+    /// Brings back the most recent delete, in its old place.
+    func undoDelete() {
+        guard let last = model.pendingDeletions.last else { return }
+        stopHiding(last)
+    }
+
+    /// Makes every pending delete final. Also called when the app quits.
+    func finishDeletions() {
+        deletionTimer?.cancel()
+        deletionTimer = nil
+        guard !model.pendingDeletions.isEmpty else { return }
+        // Delete first, then stop hiding: the other way round, the cards
+        // would flash back for a frame.
+        actions.store.delete(ids: model.pendingDeletions)
+        model.pendingDeletions.removeAll()
+    }
+
+    private func stopHiding(_ id: UUID) {
+        withAnimation(Theme.select) { model.pendingDeletions.removeAll { $0 == id } }
+        if model.pendingDeletions.isEmpty {
+            deletionTimer?.cancel()
+            deletionTimer = nil
+        }
+    }
+
     // MARK: - Copy confirmation
 
     /// The notch widens for a moment with a glimpse of what was just copied —
     /// so a copy is confirmed where you already look, without a window
     /// appearing somewhere else on screen.
     func didCapture(_ clip: Clip) {
+        // Copying again something just deleted brings that card back —
+        // otherwise the pending delete would take the new copy with it.
+        if model.pendingDeletions.contains(clip.id) { stopHiding(clip.id) }
+
         guard settings.showsCopyPeek, let panel, model.phase != .open else { return }
         let peek = Peek(clip)
 
@@ -418,6 +478,9 @@ final class NotchController {
             return true
         case "f":
             focusSearch()
+            return true
+        case "z" where !model.pendingDeletions.isEmpty:
+            undoDelete()
             return true
         case ",":
             openSettingsWindow()

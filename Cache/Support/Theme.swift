@@ -32,6 +32,10 @@ enum Theme {
     static let secondaryLabel = Color.white.opacity(0.62)
     static let tertiaryLabel = Color.white.opacity(0.38)
 
+    /// The one colour the app paints for itself: a delete button, and only
+    /// while the pointer is on it.
+    static let destructive = Color(nsColor: .systemRed)
+
     // MARK: Type — SF Pro, the Mac's own voice, sized for a glance
 
     static let search = Font.system(size: 17, weight: .regular)

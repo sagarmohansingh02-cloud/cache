@@ -17,7 +17,7 @@ struct NotchContentView: View {
     private var clips: [Clip]
 
     var body: some View {
-        let index = ClipIndex(clips: clips, filter: model.filter, starredOnly: model.starredOnly, query: model.query)
+        let index = ClipIndex(clips: liveClips, filter: model.filter, starredOnly: model.starredOnly, query: model.query)
         let metrics = model.metrics
         let inset = Theme.Notch.shoulderRadius + Theme.Notch.sidePadding
 
@@ -50,6 +50,13 @@ struct NotchContentView: View {
         }
         .onChange(of: model.query) { _, _ in model.selection = nil }
         .onChange(of: model.filter) { _, _ in model.selection = nil }
+    }
+
+    /// The history minus the cards waiting out their Undo.
+    private var liveClips: [Clip] {
+        guard !model.pendingDeletions.isEmpty else { return clips }
+        let hidden = Set(model.pendingDeletions)
+        return clips.filter { !hidden.contains($0.id) }
     }
 
     // MARK: - Collections
@@ -167,6 +174,10 @@ private struct TopBar: View {
             Spacer(minLength: notchGap)
 
             HStack(spacing: 8) {
+                if !model.pendingDeletions.isEmpty {
+                    UndoPill { actions.undoDelete() }
+                        .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .trailing)))
+                }
                 RoundButton(
                     symbol: model.starredOnly ? "star.fill" : "star",
                     isActive: model.starredOnly,
@@ -248,6 +259,35 @@ private struct RoundButton: View {
         .onHover { hovering in withAnimation(Theme.hover) { isHovered = hovering } }
         .help(help)
         .accessibilityLabel(help)
+    }
+}
+
+/// Shown for a few seconds after a delete. The way back is on screen, which
+/// is why deleting never asks "Are you sure?".
+private struct UndoPill: View {
+    let undo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("Deleted")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.secondaryLabel)
+            Button(action: undo) {
+                Text("Undo")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, 12)
+                    .frame(height: 26)
+                    .background(Capsule().fill(Theme.label))
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(PressableStyle())
+            .help("Undo (⌘Z)")
+        }
+        .padding(.leading, 14)
+        .padding(.trailing, 4)
+        .frame(height: Theme.Notch.roundButton)
+        .background(Capsule().fill(Theme.raised))
     }
 }
 

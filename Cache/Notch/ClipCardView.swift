@@ -60,6 +60,7 @@ struct ClipCardView: View {
         }
         .buttonStyle(PressableStyle(scale: 0.97))
         .overlay(alignment: .topTrailing) { cornerActions }
+        .overlay(alignment: .topLeading) { deleteAction }
         .scaleEffect(isHovered && !isCopied ? 1.02 : 1)
         .animation(Theme.hover, value: isHovered)
         .onHover { hovering in isHovered = hovering }
@@ -320,6 +321,18 @@ struct ClipCardView: View {
         .transition(.opacity)
     }
 
+    /// Delete, top left — where Apple puts "remove this" on a card, and well
+    /// away from the star, which means the opposite. It gives the corner up
+    /// to the ⌘1–9 badge while ⌘ is held.
+    @ViewBuilder
+    private var deleteAction: some View {
+        if isHovered && !model.showsShortcutHints {
+            CornerButton(symbol: "trash", help: "Delete", isDestructive: true) { actions.delete(clip) }
+                .padding(8)
+                .transition(.opacity)
+        }
+    }
+
     /// Much wider or taller than the card: filling would crop it to a sliver.
     private static func needsLetterbox(_ image: CGImage) -> Bool {
         let aspect = CGFloat(image.width) / CGFloat(max(image.height, 1))
@@ -371,19 +384,26 @@ private struct SourceIcon: View {
 private struct CornerButton: View {
     let symbol: String
     let help: String
+    /// Turns red under the pointer, so a delete announces itself before the click.
+    var isDestructive = false
     let action: () -> Void
 
+    @State private var isHovered = false
+
     var body: some View {
+        let warns = isDestructive && isHovered
+
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 10.5, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 24, height: 24)
-                .background(Circle().fill(.black.opacity(0.6)))
-                .overlay(Circle().strokeBorder(.white.opacity(0.14)))
+                .background(Circle().fill(warns ? Theme.destructive : .black.opacity(0.6)))
+                .overlay(Circle().strokeBorder(.white.opacity(warns ? 0 : 0.14)))
                 .contentShape(Circle())
         }
         .buttonStyle(PressableStyle(scale: 0.9))
+        .onHover { hovering in withAnimation(Theme.hover) { isHovered = hovering } }
         .help(help)
         .accessibilityLabel(help)
     }

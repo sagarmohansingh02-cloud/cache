@@ -44,9 +44,14 @@ final class ClipActions {
         withAnimation(Theme.select) { store.toggleStar(clip) }
     }
 
+    /// Gone from the strip at once, from the disk a few seconds later — the
+    /// gap is the Undo. See `NotchController.delete(_:)`.
     func delete(_ clip: Clip) {
-        controller?.hideDetail()
-        withAnimation(Theme.select) { store.delete(clip) }
+        controller?.delete(clip)
+    }
+
+    func undoDelete() {
+        controller?.undoDelete()
     }
 
     func file(_ clip: Clip, in collection: String?) {

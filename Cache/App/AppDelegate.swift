@@ -53,6 +53,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // A delete still waiting out its Undo is final once the app quits.
+        notch?.finishDeletions()
         watcher?.stop()
         monitor?.stop()
     }
